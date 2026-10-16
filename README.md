@@ -8,15 +8,12 @@ Plataforma de tutorías en línea y presenciales que conecta estudiantes con tut
 
 | Nombre | Rol en el equipo |
 |---|---|
-| Jorge Estiven Burgos Ortega | Líder técnico / Scrum Master |
-| _(nombre)_ | Desarrollador |
-| _(nombre)_ | Desarrollador |
-| _(nombre)_ | Desarrollador |
+| Jorge Estiven Burgos Ortega | Líder técnico / Scrum Master / Desarrollador|
 
 ## Enlaces
 
-* **Repositorio:** _(URL de GitHub)_
-* **Aplicación publicada:** _(URL del hosting)_
+* **Repositorio:** https://github.com/JorgeBuor/TutoresOnline
+* **Aplicación publicada:** https://tutoresonlinejorgeburgos.netlify.app
 
 ## Cómo recorrer la aplicación
 
@@ -115,14 +112,6 @@ tutoresonline/
 ├── js/rol.js                   Único script: rol en pantallas compartidas
 └── database/                   Base de datos para Supabase
 ```
-
-## Cómo publicarla gratis
-
-**GitHub Pages:** subir el proyecto a un repositorio, ir a **Settings > Pages**, elegir la rama `main` y la carpeta raíz. En un par de minutos queda publicada en `https://usuario.github.io/repositorio/`.
-
-**Netlify o Vercel:** arrastrar la carpeta del proyecto en su panel; no requiere configuración porque son archivos estáticos.
-
-Para verla en el computador sin publicarla, basta con abrir `index.html` en el navegador.
 
 ## Tecnologías
 
