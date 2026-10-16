@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar sesión · TutoresOn-Line</title>
+  <meta name="description" content="TutoresOn-Line: plataforma para conectar estudiantes con tutores, en clases virtuales o presenciales.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-rol="estudiante" data-rol-fijo class="sin-barra">
+
+
+<main class="auth">
+  <div class="caja">
+    <div class="marca-grande">
+      <div class="logo"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
+      <h1>TutoresOn-Line</h1>
+      <p>Conectando conocimiento en tiempo real</p>
+    </div>
+    <div class="tarjeta">
+      <a class="btn btn-google bloque" href="estudiante/inicio.html"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.6 6.6 0 0 1 5.49 12c0-.73.13-1.43.35-2.09V7.07H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg> Continuar con Google</a>
+      <div class="divisor">o</div>
+      <form action="estudiante/inicio.html" method="get">
+        <div class="campo">
+          <label for="correo">Correo electrónico</label>
+          <input class="entrada" id="correo" type="email" placeholder="ejemplo@tutores.com" autocomplete="email">
+        </div>
+        <div class="campo">
+          <label for="clave">Contraseña <a href="#recuperar">¿La olvidaste?</a></label>
+          <input class="entrada" id="clave" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn turquesa bloque grande" type="submit">Iniciar sesión</button>
+      </form>
+    </div>
+    <p class="pie-auth">¿No tienes una cuenta? <a href="registro.html">Registrarse</a></p>
+    <div class="demo">
+      Recorrido de demostración
+      <div class="chips"><a href="estudiante/inicio.html">Entrar como estudiante</a><a href="docente/inicio.html">Entrar como docente</a></div>
+    </div>
+  </div>
+</main>
+
+<div class="modal" id="recuperar" role="dialog" aria-modal="true" aria-labelledby="recuperar-t">
+  <div class="tarjeta">
+    <div class="exito"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1Z"/></svg></div>
+    <h2 id="recuperar-t">Revisa tu correo</h2>
+    <p>Te enviamos un enlace para crear una nueva contraseña.</p>
+    <div class="acciones"><a class="btn turquesa" href="#">Entendido</a></div>
+  </div>
+</div>
+<script src="js/rol.js"></script>
+</body>
+</html>

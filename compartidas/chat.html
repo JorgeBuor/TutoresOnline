@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat · TutoresOn-Line</title>
+  <meta name="description" content="TutoresOn-Line: plataforma para conectar estudiantes con tutores, en clases virtuales o presenciales.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body data-rol="estudiante">
+
+<header class="barra-superior solo-estudiante">
+  <div class="contenido">
+    <a class="marca" href="../estudiante/inicio.html"><span class="logo"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span>TutoresOn-Line</a>
+    <nav class="menu" aria-label="Menú principal"><a href="../estudiante/inicio.html">Inicio</a><a href="../estudiante/agendar.html">Agendar</a><a href="../estudiante/tiempo-real.html">En vivo</a><a href="../compartidas/chat.html?rol=estudiante" class="activo" aria-current="page">Chat</a><a href="../compartidas/clases-virtuales.html?rol=estudiante">Virtuales</a></nav>
+    <div class="usuario">
+      <span class="avatar c2 chico" aria-hidden="true">MC</span>
+      <div class="texto"><div class="nombre">María Camila</div><div class="rol">Estudiante</div></div>
+      <a class="salir" href="../index.html" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg></a>
+    </div>
+  </div>
+</header>
+<nav class="barra-inferior solo-estudiante" aria-label="Menú móvil"><a href="../estudiante/inicio.html"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>Inicio</a><a href="../estudiante/agendar.html"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agendar</a><a href="../estudiante/tiempo-real.html"><span class="punto"></span><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>En vivo</a><a href="../compartidas/chat.html?rol=estudiante" class="activo" aria-current="page"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>Chat</a><a href="../compartidas/clases-virtuales.html?rol=estudiante"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4V8Z"/></svg>Virtuales</a></nav>
+<header class="barra-superior solo-docente">
+  <div class="contenido">
+    <a class="marca" href="../docente/inicio.html"><span class="logo"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span>TutoresOn-Line</a>
+    <nav class="menu" aria-label="Menú principal"><a href="../docente/inicio.html">Inicio</a><a href="../docente/disponibilidad.html">Disponibilidad</a><a href="../docente/solicitudes.html">Solicitudes</a><a href="../compartidas/chat.html?rol=docente" class="activo" aria-current="page">Chat</a><a href="../compartidas/clases-virtuales.html?rol=docente">Virtuales</a></nav>
+    <div class="usuario">
+      <span class="avatar c1 chico" aria-hidden="true">CF</span>
+      <div class="texto"><div class="nombre">Carlos Fuentes</div><div class="rol">Docente</div></div>
+      <a class="salir" href="../index.html" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg></a>
+    </div>
+  </div>
+</header>
+<nav class="barra-inferior solo-docente" aria-label="Menú móvil"><a href="../docente/inicio.html"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>Inicio</a><a href="../docente/disponibilidad.html"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Horario</a><a href="../docente/solicitudes.html"><span class="punto"></span><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>En vivo</a><a href="../compartidas/chat.html?rol=docente" class="activo" aria-current="page"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>Chat</a><a href="../compartidas/clases-virtuales.html?rol=docente"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4V8Z"/></svg>Virtuales</a></nav>
+
+<main class="pagina" style="padding-bottom:24px">
+  <nav class="contactos-movil solo-estudiante" aria-label="Conversaciones">
+    <a class="activa" href="#"><span class="avatar c1" aria-hidden="true">CF</span>Dr. Carlos</a><a href="#"><span class="avatar c2" aria-hidden="true">EG</span>Mtra. Elena</a><a href="#"><span class="avatar c3" aria-hidden="true">SR</span>Dra. Sofía</a><a href="#"><span class="avatar c5" aria-hidden="true">AM</span>Ing. Andrés</a>
+  </nav>
+  <nav class="contactos-movil solo-docente" aria-label="Conversaciones">
+    <a class="activa" href="#"><span class="avatar c2" aria-hidden="true">MR</span>María Camila</a><a href="#"><span class="avatar c3" aria-hidden="true">MB</span>Mateo</a><a href="#"><span class="avatar c4" aria-hidden="true">AS</span>Andrés Felipe</a>
+  </nav>
+  <div class="chat">
+    <section class="tarjeta panel lista-chats" aria-label="Lista de conversaciones">
+      <div class="panel-cabeza"><h2>Mensajes</h2></div>
+      <div class="solo-estudiante">
+        <a class="conversacion activa" href="#"><span class="avatar c1 chico" aria-hidden="true">CF</span><div class="info"><div class="titulo-persona" style="font-size:14.5px">Dr. Carlos Fuentes</div><div class="vista">Hola María, tengo listo el material…</div></div><div class="cuando">3:43 PM<br></div></a>
+        <a class="conversacion" href="#"><span class="avatar c2 chico" aria-hidden="true">EG</span><div class="info"><div class="titulo-persona" style="font-size:14.5px">Mtra. Elena Gómez</div><div class="vista">Nos vemos mañana a las 10…</div></div><div class="cuando">Ayer<br><span class="no-leidos">2</span></div></a>
+        <a class="conversacion" href="#"><span class="avatar c3 chico" aria-hidden="true">SR</span><div class="info"><div class="titulo-persona" style="font-size:14.5px">Dra. Sofía Restrepo</div><div class="vista">Gracias por la clase de hoy</div></div><div class="cuando">Lunes<br></div></a>
+        <a class="conversacion" href="#"><span class="avatar c5 chico" aria-hidden="true">AM</span><div class="info"><div class="titulo-persona" style="font-size:14.5px">Ing. Andrés Mendoza</div><div class="vista">Ejercicios listos para revisar</div></div><div class="cuando">2 oct<br></div></a>
+      </div>
+      <div class="solo-docente">
+        <a class="conversacion activa" href="#"><span class="avatar c2 chico" aria-hidden="true">MR</span><div class="info"><div class="titulo-persona" style="font-size:14.5px">María Camila Restrepo</div><div class="vista">¡Súper! Justo estoy revisando…</div></div><div class="cuando">3:43 PM<br></div></a>
+        <a class="conversacion" href="#"><span class="avatar c3 chico" aria-hidden="true">MB</span><div class="info"><div class="titulo-persona" style="font-size:14.5px">Mateo Bermúdez</div><div class="vista">Profe, ¿llevo la calculadora?</div></div><div class="cuando">Ayer<br><span class="no-leidos">1</span></div></a>
+        <a class="conversacion" href="#"><span class="avatar c4 chico" aria-hidden="true">AS</span><div class="info"><div class="titulo-persona" style="font-size:14.5px">Andrés Felipe Silva</div><div class="vista">Listo, mañana a las 10</div></div><div class="cuando">Lunes<br></div></a>
+      </div>
+    </section>
+    <section class="tarjeta panel" aria-label="Conversación activa">
+      <div class="solo-estudiante" style="display:contents">
+      <div class="panel-cabeza"><span class="avatar c1 chico" aria-hidden="true">CF</span><div style="flex:1"><div class="titulo-persona">Dr. Carlos Fuentes</div><div class="estado-linea">En línea</div></div>
+        <a class="btn-icono" href="../compartidas/clases-virtuales.html?rol=estudiante" title="Iniciar videollamada" aria-label="Iniciar videollamada"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4V8Z"/></svg></a></div>
+      <div class="mensajes"><div class="burbuja recibido">Hola María, tengo listo el material de Cálculo para hoy. Estudiaremos integrales de línea.<time>3:40 PM</time></div><div class="burbuja enviado">¡Súper! Justo estoy revisando los ejercicios difíciles del taller anterior para resolverlos con usted.<time>3:42 PM</time></div><div class="burbuja recibido">Perfecto, nos vemos en 15 minutos en el aula virtual. Ten listos tus apuntes para avanzar rápido.<time>3:43 PM</time></div></div></div>
+      <div class="solo-docente" style="display:contents">
+      <div class="panel-cabeza"><span class="avatar c2 chico" aria-hidden="true">MR</span><div style="flex:1"><div class="titulo-persona">María Camila Restrepo</div><div class="estado-linea">En línea</div></div>
+        <a class="btn-icono" href="../compartidas/clases-virtuales.html?rol=docente" title="Iniciar videollamada" aria-label="Iniciar videollamada"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4V8Z"/></svg></a></div>
+      <div class="mensajes"><div class="burbuja enviado">Hola María, tengo listo el material de Cálculo para hoy. Estudiaremos integrales de línea.<time>3:40 PM</time></div><div class="burbuja recibido">¡Súper! Justo estoy revisando los ejercicios difíciles del taller anterior para resolverlos con usted.<time>3:42 PM</time></div><div class="burbuja enviado">Perfecto, nos vemos en 15 minutos en el aula virtual. Ten listos tus apuntes para avanzar rápido.<time>3:43 PM</time></div></div></div>
+      <form class="redactar" onsubmit="return false">
+        <button class="btn-icono" type="button" aria-label="Adjuntar archivo"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
+        <input class="entrada" placeholder="Escribe un mensaje..." aria-label="Mensaje">
+        <button class="btn-icono lleno" type="submit" aria-label="Enviar"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+      </form>
+    </section>
+  </div>
+</main>
+
+<script src="../js/rol.js"></script>
+</body>
+</html>

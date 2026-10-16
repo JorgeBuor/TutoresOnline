@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inicio · TutoresOn-Line</title>
+  <meta name="description" content="TutoresOn-Line: plataforma para conectar estudiantes con tutores, en clases virtuales o presenciales.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body data-rol="estudiante" data-rol-fijo>
+
+<header class="barra-superior">
+  <div class="contenido">
+    <a class="marca" href="../estudiante/inicio.html"><span class="logo"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span>TutoresOn-Line</a>
+    <nav class="menu" aria-label="Menú principal"><a href="../estudiante/inicio.html" class="activo" aria-current="page">Inicio</a><a href="../estudiante/agendar.html">Agendar</a><a href="../estudiante/tiempo-real.html">En vivo</a><a href="../compartidas/chat.html?rol=estudiante">Chat</a><a href="../compartidas/clases-virtuales.html?rol=estudiante">Virtuales</a></nav>
+    <div class="usuario">
+      <span class="avatar c2 chico" aria-hidden="true">MC</span>
+      <div class="texto"><div class="nombre">María Camila</div><div class="rol">Estudiante</div></div>
+      <a class="salir" href="../index.html" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg></a>
+    </div>
+  </div>
+</header>
+<nav class="barra-inferior" aria-label="Menú móvil"><a href="../estudiante/inicio.html" class="activo" aria-current="page"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>Inicio</a><a href="../estudiante/agendar.html"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agendar</a><a href="../estudiante/tiempo-real.html"><span class="punto"></span><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>En vivo</a><a href="../compartidas/chat.html?rol=estudiante"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>Chat</a><a href="../compartidas/clases-virtuales.html?rol=estudiante"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4V8Z"/></svg>Virtuales</a></nav>
+
+<main class="pagina">
+  <div class="encabezado">
+    <h1>Hola, María</h1>
+    <p>¿Qué aprenderemos hoy? Encuentra clases programadas o solicita ayuda al instante.</p>
+  </div>
+  <div class="rejilla rejilla-4">
+    <a class="tarjeta acceso" href="../estudiante/agendar.html"><span class="circulo"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><strong>Agendar</strong><span>Reserva una clase</span></a>
+    <a class="tarjeta acceso" href="../estudiante/tiempo-real.html"><span class="insignia">NUEVO</span><span class="circulo vivo"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span><strong>En tiempo real</strong><span>Pide un tutor ya mismo</span></a>
+    <a class="tarjeta acceso" href="../compartidas/chat.html?rol=estudiante"><span class="circulo morado"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg></span><strong>Chat</strong><span>Habla con tus tutores</span></a>
+    <a class="tarjeta acceso" href="../compartidas/clases-virtuales.html?rol=estudiante"><span class="circulo naranja"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4V8Z"/></svg></span><strong>Clases virtuales</strong><span>Tu aula en un clic</span></a>
+  </div>
+  <section class="seccion">
+    <div class="seccion-titulo"><h2>Mis clases próximas</h2><a href="../compartidas/clases-virtuales.html?rol=estudiante">Ver todas</a></div>
+    <div class="rejilla rejilla-3">
+      
+    <article class="tarjeta clase">
+      <div class="cabeza"><span class="avatar c1" aria-hidden="true">CF</span><div class="info"><div class="titulo-persona">Dr. Carlos Fuentes</div><div class="subtexto">Cálculo Multivariable</div></div><span class="estrellas"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2z" fill="currentColor"/></svg>4.9</span></div>
+      <div class="pie">
+        <div><div class="dato"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Hoy, 4:00 PM</div><div class="chip-modalidad virtual">Virtual · Google Meet</div></div>
+        <a class="btn chico" href="../compartidas/clases-virtuales.html?rol=estudiante">Unirse</a>
+      </div>
+    </article>
+      
+    <article class="tarjeta clase">
+      <div class="cabeza"><span class="avatar c2" aria-hidden="true">EG</span><div class="info"><div class="titulo-persona">Mtra. Elena Gómez</div><div class="subtexto">Química Orgánica</div></div><span class="estrellas"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2z" fill="currentColor"/></svg>4.8</span></div>
+      <div class="pie">
+        <div><div class="dato"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Mañana, 10:00 AM</div><div class="chip-modalidad presencial">Presencial · Biblioteca central</div></div>
+        <a class="btn chico claro" href="../compartidas/chat.html?rol=estudiante">Detalles</a>
+      </div>
+    </article>
+      
+    <article class="tarjeta clase">
+      <div class="cabeza"><span class="avatar c5" aria-hidden="true">AM</span><div class="info"><div class="titulo-persona">Ing. Andrés Mendoza</div><div class="subtexto">Programación en Python</div></div><span class="estrellas"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2z" fill="currentColor"/></svg>4.7</span></div>
+      <div class="pie">
+        <div><div class="dato"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Viernes, 4:00 PM</div><div class="chip-modalidad virtual">Virtual · Google Meet</div></div>
+        <a class="btn chico claro" href="../compartidas/chat.html?rol=estudiante">Detalles</a>
+      </div>
+    </article>
+    </div>
+  </section>
+</main>
+
+<script src="../js/rol.js"></script>
+</body>
+</html>

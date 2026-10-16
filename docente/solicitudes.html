@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitudes en tiempo real · TutoresOn-Line</title>
+  <meta name="description" content="TutoresOn-Line: plataforma para conectar estudiantes con tutores, en clases virtuales o presenciales.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body data-rol="docente" data-rol-fijo>
+
+<header class="barra-superior">
+  <div class="contenido">
+    <a class="marca" href="../docente/inicio.html"><span class="logo"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span>TutoresOn-Line</a>
+    <nav class="menu" aria-label="Menú principal"><a href="../docente/inicio.html">Inicio</a><a href="../docente/disponibilidad.html">Disponibilidad</a><a href="../docente/solicitudes.html" class="activo" aria-current="page">Solicitudes</a><a href="../compartidas/chat.html?rol=docente">Chat</a><a href="../compartidas/clases-virtuales.html?rol=docente">Virtuales</a></nav>
+    <div class="usuario">
+      <span class="avatar c1 chico" aria-hidden="true">CF</span>
+      <div class="texto"><div class="nombre">Carlos Fuentes</div><div class="rol">Docente</div></div>
+      <a class="salir" href="../index.html" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg></a>
+    </div>
+  </div>
+</header>
+<nav class="barra-inferior" aria-label="Menú móvil"><a href="../docente/inicio.html"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>Inicio</a><a href="../docente/disponibilidad.html"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Horario</a><a href="../docente/solicitudes.html" class="activo" aria-current="page"><span class="punto"></span><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>En vivo</a><a href="../compartidas/chat.html?rol=docente"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>Chat</a><a href="../compartidas/clases-virtuales.html?rol=docente"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4V8Z"/></svg>Virtuales</a></nav>
+
+<section class="franja-vivo">
+  <div class="contenido">
+    <div><h1>Solicitudes en tiempo real</h1><p>Atiende de inmediato a los estudiantes que necesitan ayuda ahora mismo.</p></div>
+    <span class="pulso" aria-hidden="true"></span>
+  </div>
+</section>
+<main class="pagina">
+  <div class="chips" style="margin-bottom:22px">
+    <label class="chip coral"><input type="radio" name="f-sol" checked><span>Todas las solicitudes</span></label>
+    <label class="chip coral"><input type="radio" name="f-sol"><span>Mi materia</span></label>
+    <label class="chip coral"><input type="radio" name="f-sol"><span>Cercanas a mí</span></label>
+  </div>
+  <div class="rejilla rejilla-4" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))">
+    
+      <article class="tarjeta solicitud">
+        <div class="clase"><div class="cabeza"><span class="avatar c2" aria-hidden="true">DO</span><div class="info"><div class="titulo-persona">Daniela Ortiz</div><div class="subtexto">Física: Mecánica de fluidos</div><div class="hace">Publicado hace 3 min</div></div></div></div>
+        <div class="presupuesto"><span class="etiqueta-seccion">Presupuesto sugerido</span><div class="monto">$22.000/hr</div></div>
+        <div class="acciones"><a class="btn chico claro" href="#">Ignorar</a><a class="btn chico" href="#ofertar">Ofertar</a></div>
+      </article>
+    
+      <article class="tarjeta solicitud">
+        <div class="clase"><div class="cabeza"><span class="avatar c1" aria-hidden="true">SG</span><div class="info"><div class="titulo-persona">Santiago Giraldo</div><div class="subtexto">Álgebra: Sistemas de ecuaciones</div><div class="hace">Publicado hace 7 min</div></div></div></div>
+        <div class="presupuesto"><span class="etiqueta-seccion">Presupuesto sugerido</span><div class="monto">$20.000/hr</div></div>
+        <div class="acciones"><a class="btn chico claro" href="#">Ignorar</a><a class="btn chico" href="#ofertar">Ofertar</a></div>
+      </article>
+    
+      <article class="tarjeta solicitud">
+        <div class="clase"><div class="cabeza"><span class="avatar c4" aria-hidden="true">JC</span><div class="info"><div class="titulo-persona">Juliana Castro</div><div class="subtexto">Cálculo: Integrales triples</div><div class="hace">Publicado hace 12 min</div></div></div></div>
+        <div class="presupuesto"><span class="etiqueta-seccion">Presupuesto sugerido</span><div class="monto">$25.000/hr</div></div>
+        <div class="acciones"><a class="btn chico claro" href="#">Ignorar</a><a class="btn chico" href="#ofertar">Ofertar</a></div>
+      </article>
+    
+      <article class="tarjeta solicitud">
+        <div class="clase"><div class="cabeza"><span class="avatar c3" aria-hidden="true">MB</span><div class="info"><div class="titulo-persona">Mateo Bermúdez</div><div class="subtexto">Física: Campos electromagnéticos</div><div class="hace">Publicado hace 15 min</div></div></div></div>
+        <div class="presupuesto"><span class="etiqueta-seccion">Presupuesto sugerido</span><div class="monto">$24.000/hr</div></div>
+        <div class="acciones"><a class="btn chico claro" href="#">Ignorar</a><a class="btn chico" href="#ofertar">Ofertar</a></div>
+      </article>
+  </div>
+</main>
+
+<div class="modal" id="ofertar" role="dialog" aria-modal="true" aria-labelledby="of-t">
+  <div class="tarjeta izq">
+    <h2 id="of-t">Enviar oferta</h2>
+    <p>Acepta el presupuesto del estudiante o propón tu propia tarifa.</p>
+    <div class="campo"><label for="of-v">Tu tarifa por hora</label><div class="con-prefijo"><span>$</span><input class="entrada" id="of-v" value="22.000" inputmode="numeric"></div></div>
+    <div class="campo"><label for="of-m">Puedo empezar en</label><select class="entrada" id="of-m"><option>2 minutos</option><option>5 minutos</option><option>10 minutos</option></select></div>
+    <div class="acciones"><a class="btn" href="#oferta-enviada">Enviar oferta</a><a class="btn claro" href="#">Cancelar</a></div>
+  </div>
+</div>
+<div class="modal" id="oferta-enviada" role="dialog" aria-modal="true" aria-labelledby="oferta-enviada-t">
+  <div class="tarjeta">
+    <div class="exito"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <h2 id="oferta-enviada-t">Oferta enviada</h2>
+    <p>Te avisaremos si el estudiante la acepta. La clase aparecerá en tu agenda de hoy.</p>
+    <div class="acciones"><a class="btn" href="../docente/inicio.html">Ir a mi agenda</a><a class="btn claro" href="#">Ver más solicitudes</a></div>
+  </div>
+</div>
+<script src="../js/rol.js"></script>
+</body>
+</html>
