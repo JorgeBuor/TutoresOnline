@@ -58,47 +58,6 @@ El proyecto incluye **un único archivo de JavaScript**, `js/rol.js`, de unas 30
 
 Esto sigue el principio de no repetir código y deja cada pantalla con una sola fuente de verdad.
 
-## Base de datos (Supabase / PostgreSQL)
-
-La carpeta `database/` contiene el diseño relacional completo:
-
-| Archivo | Contenido |
-|---|---|
-| `schema.sql` | Tablas, relaciones, reglas de negocio, vistas y seguridad por filas |
-| `seed.sql` | Catálogos iniciales: niveles educativos y materias |
-| `seed_demo.sql` | Usuarios y datos de demostración (los mismos de las pantallas) |
-| `diagrama-er.png` / `.svg` | Diagrama entidad relación |
-| `diagrama-er.dot` | Fuente del diagrama (Graphviz) |
-
-![Diagrama entidad relación](database/diagrama-er.png)
-
-### Tablas
-
-| Grupo | Tablas | Para qué sirven |
-|---|---|---|
-| Usuarios | `perfiles`, `docentes`, `integraciones_google` | Datos de cada usuario, rol, reputación del docente y conexión con Google Calendar |
-| Catálogo | `materias`, `niveles_educativos`, `docente_materias`, `disponibilidad` | Qué enseña cada docente, en qué nivel, a qué tarifa y en qué horarios |
-| Tutorías | `tutorias`, `resenas`, `notificaciones` | Clases agendadas, calificación por estrellas y avisos por correo, SMS o WhatsApp |
-| Tiempo real (opcional) | `solicitudes_tiempo_real`, `ofertas` | Solicitudes del estudiante con precio sugerido y ofertas de los docentes |
-| Chat | `conversaciones`, `mensajes` | Mensajería entre estudiante y docente |
-
-### Reglas de negocio que cuida la propia base de datos
-
-* Al registrarse (con correo o con Google), se crea el perfil automáticamente con el rol elegido.
-* Un docente **no puede tener dos clases que se crucen** en el mismo horario.
-* Solo se puede calificar una tutoría **completada**, y solo la califica el estudiante que la tomó.
-* La **reputación** (promedio de estrellas y número de reseñas) se recalcula sola con cada reseña.
-* Al **aceptar una oferta** en tiempo real se crea la tutoría, se asigna la solicitud y se rechazan las demás ofertas en una sola operación (función `aceptar_oferta`).
-* **Seguridad por filas (RLS):** cada usuario solo ve sus tutorías, conversaciones y notificaciones. Los permisos de Google Calendar solo los puede leer el servidor, nunca el navegador.
-
-### Cómo instalarla en Supabase
-
-1. Crear un proyecto en [supabase.com](https://supabase.com).
-2. Ir a **SQL Editor**, pegar el contenido de `database/schema.sql` y presionar **Run**.
-3. Repetir con `database/seed.sql`.
-4. Opcional: repetir con `database/seed_demo.sql` para cargar los usuarios de demostración (contraseña de todos: `Demo1234*`).
-5. Para el ingreso con Google: **Authentication > Providers > Google**, con las credenciales creadas en Google Cloud Console.
-
 ## Estructura del proyecto
 
 ```
@@ -109,8 +68,7 @@ tutoresonline/
 ├── docente/                    Pantallas propias del docente
 ├── compartidas/                Chat y Clases virtuales (ambos roles)
 ├── css/styles.css              Estilos únicos, responsive
-├── js/rol.js                   Único script: rol en pantallas compartidas
-└── database/                   Base de datos para Supabase
+└── js/rol.js                   Único script: rol en pantallas compartidas
 ```
 
 ## Tecnologías
