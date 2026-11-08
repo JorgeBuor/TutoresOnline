@@ -72,8 +72,10 @@ before(async () => {
     },
     { calendario, correo: { enviar: async (c) => { correosEnviados.push(c); return true; } } },
   );
-  // Cada corrida empieza con la base vacía (solo catálogos)
-  await contenedor.db.consultar('truncate auth.users cascade');
+  // Cada corrida empieza con la base vacía: solo quedan los catálogos iniciales
+  await contenedor.db.consultar('truncate tutorias, solicitudes_tiempo_real, conversaciones, notificaciones, avisos_materia cascade');
+  await contenedor.db.consultar('delete from auth.users');
+  await contenedor.db.consultar('delete from materias where creada_por is null and id > 14');
   servidor = crearApp(contenedor).listen(0);
   base = `http://localhost:${servidor.address().port}`;
 
@@ -322,4 +324,70 @@ test('quien entra con Google elige su rol una sola vez y el docente conecta Cale
   const google = await api('PUT', '/yo/google', { token: nuevo.token, cuerpo: { refresh_token: 'token-de-google' } });
   assert.equal(google.datos.google_conectado, true);
   assert.equal((await api('PUT', '/yo/google', { token: u.estudiante.token, cuerpo: { refresh_token: 'x' } })).status, 403);
+});
+
+test('catálogo abierto: el docente crea materias y se avisa a los estudiantes que las esperaban', async () => {
+  const docente3 = await crearUsuario('Lucia Paez', 'docente');
+  const catalogo = async () => (await api('GET', '/catalogos')).datos;
+  const inicial = await catalogo();
+  const quimica = inicial.materias.find((m) => m.nombre === 'Química Orgánica');
+  assert.equal(quimica.tutores, 0);
+  assert.ok(inicial.areas.includes('Ciencias'));
+
+  // Los estudiantes piden aviso: uno por una materia del catálogo y otro escribiendo una que no existe
+  const porTexto = await api('POST', '/avisos-materia', { token: u.estudiante.token, cuerpo: { texto: 'contabilidad  de COSTOS' } });
+  assert.equal(porTexto.status, 201);
+  assert.equal(porTexto.datos.materia_id, null);
+  const repetido = await api('POST', '/avisos-materia', { token: u.estudiante.token, cuerpo: { texto: 'Contabilidad de costos' } });
+  assert.equal(repetido.status, 201);
+  assert.equal((await api('GET', '/avisos-materia', { token: u.estudiante.token })).datos.length, 1, 'no se duplica el aviso');
+  const porMateria = await api('POST', '/avisos-materia', { token: u.estudiante2.token, cuerpo: { materia_id: quimica.id } });
+  assert.equal(porMateria.status, 201);
+  const textoExistente = await api('POST', '/avisos-materia', { token: u.estudiante2.token, cuerpo: { texto: 'quimica organica' } });
+  assert.equal(textoExistente.datos.materia_id, quimica.id, 'si lo escrito ya existe, el aviso queda en esa materia');
+
+  // Solo los docentes crean materias, y sin duplicados aunque cambien mayúsculas o tildes
+  assert.equal((await api('POST', '/materias', { token: u.estudiante.token, cuerpo: { nombre: 'Algo', area: 'Otra' } })).status, 403);
+  const creada = await api('POST', '/materias', { token: docente3.token, cuerpo: { nombre: 'contabilidad de costos', area: 'finanzas' } });
+  assert.equal(creada.status, 201, JSON.stringify(creada.datos));
+  assert.equal(creada.datos.nueva, true);
+  assert.equal(creada.datos.materia.nombre, 'Contabilidad de costos');
+  assert.equal(creada.datos.materia.area, 'Finanzas');
+  const otraVez = await api('POST', '/materias', { token: docente3.token, cuerpo: { nombre: 'CONTABILIDAD   DE CÓSTOS', area: 'Finanzas' } });
+  assert.equal(otraVez.datos.nueva, false);
+  assert.equal(otraVez.datos.materia.id, creada.datos.materia.id);
+  const areaExistente = await api('POST', '/materias', { token: docente3.token, cuerpo: { nombre: 'Bioquímica', area: 'ciencias' } });
+  assert.equal(areaExistente.datos.materia.area, 'Ciencias', 'usa el área existente en vez de duplicarla');
+  assert.equal((await api('POST', '/materias', { token: docente3.token, cuerpo: { nombre: '12', area: 'Ciencias' } })).status, 400);
+
+  // El aviso escrito quedó unido a la materia nueva
+  const avisos = (await api('GET', '/avisos-materia', { token: u.estudiante.token })).datos;
+  assert.equal(avisos[0].materia_id, creada.datos.materia.id);
+
+  // Al publicar materias y horarios, se envía el correo a los dos estudiantes, una sola vez
+  const universitario = inicial.niveles.find((n) => n.nombre === 'Universitario').id;
+  const antes = correosEnviados.length;
+  const guardar = () => api('PUT', '/docente/configuracion', {
+    token: docente3.token,
+    cuerpo: {
+      ofrece_virtual: true,
+      materias: [
+        { materia_id: creada.datos.materia.id, nivel_id: universitario, tarifa_hora: 40000 },
+        { materia_id: quimica.id, nivel_id: universitario, tarifa_hora: 40000 },
+      ],
+      disponibilidad: [{ dia_semana: 2, hora_inicio: '14:00', hora_fin: '16:00' }],
+    },
+  });
+  assert.equal((await guardar()).status, 200);
+  const nuevos = correosEnviados.slice(antes);
+  assert.equal(nuevos.length, 2);
+  assert.ok(nuevos.some((c) => c.asunto === 'Ya hay un tutor de Contabilidad de costos' && c.para === 'maria.restrepo@prueba.co'));
+  assert.ok(nuevos.some((c) => c.asunto === 'Ya hay un tutor de Química Orgánica' && c.para === 'mateo.bermudez@prueba.co'));
+  await guardar();
+  assert.equal(correosEnviados.length, antes + 2, 'no repite el aviso');
+  assert.equal((await api('GET', '/avisos-materia', { token: u.estudiante.token })).datos.length, 0);
+
+  const final = await catalogo();
+  assert.equal(final.materias.find((m) => m.id === quimica.id).tutores, 1);
+  assert.equal(final.materias.find((m) => m.id === creada.datos.materia.id).tutores, 1);
 });

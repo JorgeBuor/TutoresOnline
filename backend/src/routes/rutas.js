@@ -29,6 +29,11 @@ function crearRutas({ c, sesion }) {
   r.get('/tutores', c.tutores.buscar);
   r.get('/tutores/:id', c.tutores.detalle);
 
+  // Catálogo abierto: el docente agrega materias; el estudiante pide aviso si no hay tutor
+  r.post('/materias', docente, c.catalogos.crearMateria);
+  r.get('/avisos-materia', estudiante, c.catalogos.misAvisos);
+  r.post('/avisos-materia', estudiante, c.catalogos.crearAviso);
+
   // Configuración del docente (pantalla Disponibilidad)
   r.get('/docente/configuracion', docente, c.docente.obtenerConfiguracion);
   r.put('/docente/configuracion', docente, c.docente.guardarConfiguracion);

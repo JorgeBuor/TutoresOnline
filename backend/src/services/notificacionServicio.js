@@ -72,6 +72,15 @@ class NotificacionServicio {
     });
   }
 
+  /** El estudiante pidió aviso de una materia y un docente acaba de publicarla con horarios. */
+  materiaDisponible(a, docente) {
+    return this.enviar({
+      usuarioId: a.estudiante_id, email: a.email, tutoriaId: null,
+      asunto: `Ya hay un tutor de ${a.materia}`,
+      mensaje: `Hola, ${a.nombre_completo}. Nos pediste que te avisáramos: ${docente} ya enseña <b>${a.materia}</b> en TutoresOn-Line. Entra a Agendar para ver sus horarios y reservar.`,
+    });
+  }
+
   tutoriaCancelada(t, canceladaPorId) {
     const avisarAlDocente = canceladaPorId === t.estudiante_id;
     return this.enviar({

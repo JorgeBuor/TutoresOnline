@@ -58,13 +58,15 @@ Todas las rutas empiezan por `/api`. Las marcadas con 🔒 exigen sesión (`Auth
 |---|---|---|---|
 | GET | `/salud` | Comprobar que la API responde | Público |
 | GET | `/configuracion` | Datos públicos para conectar el navegador con Supabase | Público |
-| GET | `/catalogos` | Materias, niveles educativos y ciudades | Público |
+| GET | `/catalogos` | Materias (con cuántos tutores tiene cada una), áreas, niveles educativos y ciudades | Público |
 | GET | `/yo` | Perfil del usuario actual 🔒 | Ambos |
 | PATCH | `/yo` | Actualizar nombre, teléfono o ciudad 🔒 | Ambos |
 | POST | `/yo/rol` | Elegir rol la primera vez que se entra con Google 🔒 | Ambos |
 | PUT / DELETE | `/yo/google` | Conectar o desconectar Google Calendar 🔒 | Docente |
 | GET | `/tutores` | Buscar por materia, nivel, modalidad, ciudad y fecha 🔒 | Ambos |
 | GET | `/tutores/:id` | Perfil del tutor, reseñas y horarios libres 🔒 | Ambos |
+| POST | `/materias` | Crea una materia que no estaba en el catálogo (sin duplicados aunque cambien tildes o mayúsculas) 🔒 | Docente |
+| GET / POST | `/avisos-materia` | Pedir que avisen por correo cuando haya un tutor de una materia 🔒 | Estudiante |
 | GET / PUT | `/docente/configuracion` | Materias, tarifa, modalidades y disponibilidad semanal 🔒 | Docente |
 | GET | `/tutorias?vista=` | Mis clases: `proximas`, `pendientes`, `virtuales`, `historial` 🔒 | Ambos |
 | POST | `/tutorias` | Reservar una clase (queda por aceptar) 🔒 | Estudiante |
@@ -83,6 +85,8 @@ Los errores siempre responden con el mismo formato: `{ "error": { "codigo": "...
 
 * **Registro con rol:** al registrarse se elige estudiante o docente; quien entra con Google lo elige una sola vez.
 * **Búsqueda:** por materia, nivel educativo, modalidad, ciudad (área geográfica) y disponibilidad en una fecha.
+* **Catálogo abierto:** si un docente no encuentra su materia, la crea con su área desde la aplicación; la base reconoce la misma materia aunque se escriba con o sin tildes o mayúsculas.
+* **Materias sin tutores:** el estudiante ve cuántos tutores tiene cada materia; si no hay ninguno, puede pedir que le avisen por correo, incluso escribiendo una materia que aún no existe. El aviso se envía una sola vez, cuando un docente publica esa materia con horarios.
 * **Reserva:** solo dentro de la disponibilidad semanal del docente, en el futuro y sin cruzarse con otra clase.
 * **Aceptar o rechazar:** la reserva queda pendiente hasta que el docente la acepta o la rechaza.
 * **Videoconferencia:** al aceptar, se crea el evento en Google Calendar con el enlace de Meet.
@@ -105,7 +109,7 @@ frontend/                 Pantallas (lo que publica Netlify)
 backend/
 ├── src/                  API (ver organización arriba)
 ├── tests/                Pruebas automáticas de la API
-├── database/             schema.sql, seed.sql, seed_demo.sql y diagrama
+├── database/             schema.sql, seed.sql, seed_demo.sql, actualizacion_materias_abiertas.sql y diagrama
 └── server.js             Servidor para correr todo en local
 netlify/functions/api.js  Punto de entrada de la API en Netlify
 netlify.toml              Configuración de publicación

@@ -453,3 +453,10 @@ button.chip { font: inherit; cursor: pointer; }
 .etiqueta-materia button .icono { width: 14px; height: 14px; }
 .google-desconectado { display: inline-flex; align-items: center; gap: 6px; background: var(--fondo); border: 1px solid var(--linea); color: var(--tinta-suave); font-weight: 700; font-size: 13.5px; padding: 7px 14px; border-radius: 10px; cursor: pointer; }
 .proxima .sin-enlace { font-size: 13px; color: var(--tinta-suave); }
+
+/* Catálogo abierto: materia nueva y avisos al estudiante */
+.materia-nueva { border-left: 3px solid var(--ambar); padding-left: 12px; margin-bottom: 14px; }
+.vacio .titulo-vacio { display: block; font-weight: 700; color: var(--tinta); font-size: 16px; margin-bottom: 4px; }
+.vacio .ok-aviso { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--turquesa-osc); font-weight: 600; }
+.vacio .ok-aviso .icono { width: 18px; height: 18px; }
+.enlace-otra { background: none; border: 0; padding: 0; color: var(--turquesa-osc); font-weight: 600; cursor: pointer; font: inherit; text-decoration: underline; }

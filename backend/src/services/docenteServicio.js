@@ -8,9 +8,11 @@ const aMinutos = (hora) => {
 
 /** Pantalla "Disponibilidad": modalidades, materias con tarifa y cuadrícula semanal del docente. */
 class DocenteServicio {
-  constructor({ db, docenteRepositorio }) {
+  constructor({ db, docenteRepositorio, catalogoRepositorio, notificaciones }) {
     this.db = db;
     this.docentes = docenteRepositorio;
+    this.catalogo = catalogoRepositorio;
+    this.notificaciones = notificaciones;
   }
 
   async obtenerConfiguracion(usuario) {
@@ -74,7 +76,21 @@ class DocenteServicio {
       await repo.reemplazarMaterias(usuario.id, materias);
       await repo.reemplazarDisponibilidad(usuario.id, bloques);
     });
+    if (materias.length && bloques.length) await this.avisarEstudiantes(usuario, materias);
     return this.obtenerConfiguracion(usuario);
+  }
+
+  /** Con materias y horarios publicados el docente ya aparece al buscar: se avisa a quienes lo esperaban. */
+  async avisarEstudiantes(usuario, materias) {
+    if (!this.catalogo || !this.notificaciones) return;
+    try {
+      const pendientes = await this.catalogo.avisosPendientes([...new Set(materias.map((m) => m.materia_id))]);
+      if (!pendientes.length) return;
+      await this.catalogo.marcarAvisados(pendientes.map((a) => a.id));
+      await Promise.all(pendientes.map((a) => this.notificaciones.materiaDisponible(a, usuario.nombre_completo)));
+    } catch (error) {
+      console.error('No se pudo avisar a los estudiantes:', error.message);
+    }
   }
 }
 

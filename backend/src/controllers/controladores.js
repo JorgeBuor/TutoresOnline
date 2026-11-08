@@ -18,6 +18,9 @@ const crearControladores = (s) => ({
   },
   catalogos: {
     todo: responder(() => s.catalogo.todo()),
+    crearMateria: responder((req) => s.catalogo.crearMateria(req.usuario, req.body), 201),
+    misAvisos: responder((req) => s.catalogo.misAvisos(req.usuario)),
+    crearAviso: responder((req) => s.catalogo.crearAviso(req.usuario, req.body), 201),
   },
   perfil: {
     yo: responder((req) => s.perfil.yo(req.usuario)),

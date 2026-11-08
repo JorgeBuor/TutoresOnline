@@ -66,11 +66,38 @@ create table niveles_educativos (
   nombre  text not null unique                 -- Primaria, Bachillerato, Universitario...
 );
 
+-- Clave para comparar textos sin importar mayúsculas, tildes ni espacios de más
+-- ("calculo  diferencial" y "Cálculo Diferencial" dan la misma clave).
+create or replace function clave_texto(t text) returns text
+language sql immutable as $$
+  select regexp_replace(translate(lower(trim(t)), 'áéíóúüñàèìòù', 'aeiouunaeiou'), '\s+', ' ', 'g')
+$$;
+
+-- Catálogo abierto: los docentes pueden agregar materias que no estén en la lista.
 create table materias (
-  id      serial primary key,
-  nombre  text not null unique,
-  area    text not null                         -- Matemáticas, Ciencias, Idiomas, Programación...
+  id          serial primary key,
+  nombre      text not null unique,
+  area        text not null,                    -- Matemáticas, Ciencias, Idiomas, Programación...
+  creada_por  uuid references perfiles (id) on delete set null,   -- null = materia inicial del catálogo
+  creada_en   timestamptz not null default now()
 );
+create unique index materias_clave_unica on materias (clave_texto(nombre));
+
+-- Estudiantes que buscaron una materia sin tutores y pidieron que les avisen.
+-- Si la materia todavía no existe en el catálogo, se guarda lo que escribió en "texto".
+create table avisos_materia (
+  id             bigserial primary key,
+  estudiante_id  uuid    not null references perfiles (id) on delete cascade,
+  materia_id     integer references materias (id) on delete cascade,
+  texto          text,
+  creado_en      timestamptz not null default now(),
+  avisado_en     timestamptz,                    -- cuándo se le envió el correo
+  check (materia_id is not null or texto is not null)
+);
+create unique index avisos_pendiente_materia on avisos_materia (estudiante_id, materia_id)
+  where materia_id is not null and avisado_en is null;
+create unique index avisos_pendiente_texto on avisos_materia (estudiante_id, clave_texto(texto))
+  where materia_id is null and avisado_en is null;
 
 -- Qué materias enseña cada docente, en qué nivel y a qué tarifa.
 create table docente_materias (
@@ -378,6 +405,7 @@ alter table resenas                 enable row level security;
 alter table conversaciones          enable row level security;
 alter table mensajes                enable row level security;
 alter table notificaciones          enable row level security;
+alter table avisos_materia          enable row level security;
 
 -- Catálogos y perfiles públicos: cualquier usuario autenticado los puede leer.
 create policy leer_perfiles        on perfiles           for select to authenticated using (true);
@@ -418,6 +446,9 @@ create policy enviar_mensaje       on mensajes for insert to authenticated
   with check (remitente_id = auth.uid() and exists (select 1 from conversaciones c where c.id = conversacion_id and auth.uid() in (c.estudiante_id, c.docente_id)));
 create policy marcar_leido         on mensajes for update to authenticated
   using (exists (select 1 from conversaciones c where c.id = conversacion_id and auth.uid() in (c.estudiante_id, c.docente_id)));
+
+-- Avisos de materias: cada estudiante ve los suyos (los crea el backend).
+create policy ver_mis_avisos       on avisos_materia for select to authenticated using (estudiante_id = auth.uid());
 
 -- Notificaciones: cada quien ve las suyas (las crea el backend).
 create policy ver_mis_notif        on notificaciones for select to authenticated using (usuario_id = auth.uid());

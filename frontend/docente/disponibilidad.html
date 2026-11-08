@@ -63,9 +63,15 @@
 <div class="modal" id="agregar-materia" role="dialog" aria-modal="true" aria-labelledby="am-t">
   <form class="tarjeta izq" id="form-materia">
     <h2 id="am-t">Agregar materia</h2>
-    <p>Elige la materia y el nivel en el que la enseñas.</p>
+    <p>Elige la materia y el nivel en el que la enseñas. Si no la encuentras, elige <b>Otra materia</b> al final de la lista y escríbela.</p>
     <div class="campo"><label for="am-m">Materia</label><select class="entrada" id="am-m" required></select></div>
+    <div id="am-nueva" class="materia-nueva" hidden>
+      <div class="campo"><label for="am-nombre">Nombre de la materia</label><input class="entrada" id="am-nombre" maxlength="60" placeholder="Ej: Contabilidad de costos"></div>
+      <div class="campo"><label for="am-area">Área</label><input class="entrada" id="am-area" list="am-areas" maxlength="40" placeholder="Elige una de la lista o escribe una nueva"><datalist id="am-areas"></datalist>
+        <span class="ayuda">Quedará disponible para todos los docentes y estudiantes.</span></div>
+    </div>
     <div class="campo"><label for="am-n">Nivel</label><select class="entrada" id="am-n" required></select></div>
+    <p class="mensaje-error" data-error hidden></p>
     <div class="acciones"><button class="btn" type="submit">Agregar</button><a class="btn claro" href="#" data-cerrar>Cancelar</a></div>
   </form>
 </div>
