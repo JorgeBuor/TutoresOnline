@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendar en tiempo real · TutoresOn-Line</title>
+  <meta name="description" content="TutoresOn-Line: plataforma para conectar estudiantes con tutores, en clases virtuales o presenciales.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body data-rol="estudiante" data-rol-fijo data-pagina-rol="estudiante">
+
+<header class="barra-superior">
+  <div class="contenido">
+    <a class="marca" href="../estudiante/inicio.html"><span class="logo"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span>TutoresOn-Line</a>
+    <nav class="menu" aria-label="Menú principal"><a href="../estudiante/inicio.html">Inicio</a><a href="../estudiante/agendar.html">Agendar</a><a href="../estudiante/tiempo-real.html" class="activo" aria-current="page">En vivo</a><a href="../compartidas/chat.html?rol=estudiante">Chat</a><a href="../compartidas/clases-virtuales.html?rol=estudiante">Virtuales</a></nav>
+    <div class="usuario">
+      <span class="avatar chico c6" data-usuario="avatar" aria-hidden="true"></span>
+      <div class="texto"><div class="nombre" data-usuario="nombre">&nbsp;</div><div class="rol" data-usuario="rol">&nbsp;</div></div>
+      <a class="salir" href="../index.html" data-accion="salir" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg></a>
+    </div>
+  </div>
+</header>
+<nav class="barra-inferior" aria-label="Menú móvil"><a href="../estudiante/inicio.html"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>Inicio</a><a href="../estudiante/agendar.html"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agendar</a><a href="../estudiante/tiempo-real.html" class="activo" aria-current="page"><span class="punto" data-punto-vivo hidden></span><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>En vivo</a><a href="../compartidas/chat.html?rol=estudiante"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>Chat</a><a href="../compartidas/clases-virtuales.html?rol=estudiante"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4V8Z"/></svg>Virtuales</a></nav>
+
+<section class="franja-vivo">
+  <div class="contenido">
+    <div><h1>Agendar en tiempo real</h1><p>Pide un tutor ahora mismo, estilo InDrive: define tu tema, sugiere tu tarifa y elige la oferta que prefieras.</p></div>
+    <span class="pulso" aria-hidden="true"></span>
+  </div>
+</section>
+<main class="pagina">
+  <div class="dos-columnas">
+    <form class="tarjeta" id="form-solicitud" aria-labelledby="t-publicar" novalidate>
+      <h2 id="t-publicar" style="margin-bottom:18px">Publicar solicitud</h2>
+      <div class="campo"><label for="tema">¿Qué tema necesitas resolver ya?</label><input class="entrada" id="tema" placeholder="Ej: Ejercicios de electromagnetismo" required minlength="3"></div>
+      <div class="campo"><label for="materia-tr">Materia</label><select class="entrada" id="materia-tr" required><option value="">Elige una materia</option></select></div>
+      <div class="rejilla rejilla-2" style="gap:12px">
+        <div class="campo"><label for="tarifa">Tu tarifa sugerida por hora</label><div class="con-prefijo"><span>$</span><input class="entrada" id="tarifa" placeholder="20.000" inputmode="numeric" required></div></div>
+        <div class="campo"><label for="duracion">Duración</label><select class="entrada" id="duracion"><option value="60">1 hora</option><option value="120">2 horas</option><option value="30">30 minutos</option></select></div>
+      </div>
+      <div class="campo"><span class="rotulo">Modalidad</span><div class="chips"><label class="chip coral"><input type="radio" name="mod-tr" value="virtual" checked><span>Virtual</span></label><label class="chip coral"><input type="radio" name="mod-tr" value="presencial"><span>Presencial</span></label></div></div>
+      <div class="campo" id="campo-ciudad" hidden><label for="ciudad-tr">Ciudad</label><input class="entrada" id="ciudad-tr" placeholder="Ej: Barranquilla"></div>
+      <p class="mensaje-error" data-error hidden></p>
+      <button class="btn coral bloque grande" type="submit">Publicar solicitud</button>
+    </form>
+    <section id="ofertas" aria-labelledby="t-ofertas">
+      <div class="seccion-titulo"><h2 id="t-ofertas">Ofertas de tutores <span id="num-ofertas"></span></h2><span class="en-vivo" id="indicador-vivo" hidden>En vivo</span></div>
+      <div class="lista" id="lista-ofertas"><div class="vacio">Publica una solicitud y aquí verás, en vivo, las ofertas de los tutores disponibles.</div></div>
+      <p class="ayuda" style="margin-top:14px">Al aceptar una oferta, las demás se cierran automáticamente.</p>
+      <button class="btn claro chico" type="button" id="cancelar-solicitud" hidden style="margin-top:10px">Cancelar mi solicitud</button>
+    </section>
+  </div>
+</main>
+
+<div class="avisos" id="avisos" aria-live="polite"></div>
+<script src="../js/rol.js"></script>
+<script type="module" src="../js/paginas/estudiante-tiempo-real.js"></script>
+</body>
+</html>

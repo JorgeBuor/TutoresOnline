@@ -1,79 +1,137 @@
 # TutoresOn-Line
 
-Plataforma de tutorías en línea y presenciales que conecta estudiantes con tutores calificados. Proyecto final de **Desarrollo Web**, grupo **24230**.
+Plataforma de tutorías en línea y presenciales que conecta estudiantes con tutores. Proyecto final de **Desarrollo Web**, grupo **24230**.
 
+**Integrante:** Jorge Estiven Burgos Ortega
 **Product Owner:** Prof. Edgar Morillo
-
-## Integrantes
-
-| Nombre | Rol en el equipo |
-|---|---|
-| Jorge Estiven Burgos Ortega | Líder técnico / Scrum Master / Desarrollador|
 
 ## Enlaces
 
 * **Repositorio:** https://github.com/JorgeBuor/TutoresOnline
-* **Aplicación publicada:** https://tutoresonlinejorgeburgos.netlify.app
+* **Aplicación publicada:** https://tutoresonlinejorgeburgos.netlify.app/
 
-## Cómo recorrer la aplicación
+## Arquitectura
 
-La aplicación arranca en el login (`index.html`). Desde ahí se puede entrar como estudiante o como docente con los botones de **Recorrido de demostración**, o crear una cuenta en **Registrarse**.
+```
+Navegador (web y móvil)
+   │  pantallas HTML + CSS + JavaScript   ── frontend/
+   │
+   ├─► Supabase Auth  (inicio de sesión con correo o con Google)
+   │
+   └─► API REST propia en Netlify Functions ── backend/ + netlify/functions/
+          │  Express, capas SOLID
+          ├─► PostgreSQL en Supabase   (base de datos)
+          ├─► Google Calendar API      (evento + enlace de Google Meet)
+          └─► Resend                   (correos de aviso)
+```
 
-| # | Pantalla | Archivo | Rol |
+* **Pantallas y API viven en el mismo sitio de Netlify**: las direcciones `/api/...` las atiende la función `netlify/functions/api.js`; todo lo demás son las pantallas de `frontend/`.
+* **Supabase** guarda los datos y maneja el inicio de sesión. La API nunca ve contraseñas: valida la firma del token de sesión que entrega Supabase.
+* **Google Calendar y Meet**: cuando el docente acepta una clase, la API crea el evento en su calendario, invita al estudiante y Google genera el enlace de Meet.
+
+## Organización del backend (principios SOLID)
+
+```
+backend/src/
+├── routes/          Qué direcciones existen y qué verbo HTTP usa cada una
+├── controllers/     Reciben la petición HTTP y devuelven JSON (sin reglas de negocio)
+├── services/        Reglas de negocio: reservar, aceptar, calificar, chat, tiempo real
+├── repositories/    Consultas SQL: lo único que habla con la base de datos
+├── integraciones/   Google Calendar y correo, intercambiables
+├── middlewares/     Verificación de sesión, permisos por rol y manejo de errores
+├── config/ db/ utils/
+├── contenedor.js    Arma todas las piezas e inyecta sus dependencias
+└── app.js           Crea la aplicación Express
+```
+
+* **Responsabilidad única:** cada capa hace una sola cosa; por ejemplo, los repositorios no conocen HTTP y los controladores no conocen SQL.
+* **Abierto/cerrado:** los cambios de estado de una tutoría están en una tabla de reglas (`TRANSICIONES` en `tutoriaServicio.js`); un estado nuevo se agrega sin modificar el resto.
+* **Sustitución de Liskov:** `CalendarioGoogle` y `CalendarioDesactivado` (igual que `CorreoResend` y `CorreoDesactivado`) se pueden usar uno en lugar del otro.
+* **Segregación de interfaces:** cada servicio recibe solo los repositorios que usa.
+* **Inversión de dependencias:** los servicios reciben sus dependencias por el constructor desde `contenedor.js`; por eso las pruebas usan un calendario y un correo falsos.
+
+## API REST
+
+Todas las rutas empiezan por `/api`. Las marcadas con 🔒 exigen sesión (`Authorization: Bearer <token de Supabase>`).
+
+| Método | Ruta | Para qué sirve | Rol |
 |---|---|---|---|
-| 1 | Login | `index.html` | Todos |
-| 2 | Registro | `registro.html` | Todos |
-| 3 | Inicio del estudiante | `estudiante/inicio.html` | Estudiante |
-| 4 | Agendar clase | `estudiante/agendar.html` | Estudiante |
-| 5 | Agendar en tiempo real (opcional) | `estudiante/tiempo-real.html` | Estudiante |
-| 6 | Inicio del docente | `docente/inicio.html` | Docente |
-| 7 | Disponibilidad | `docente/disponibilidad.html` | Docente |
-| 8 | Solicitudes en tiempo real (opcional) | `docente/solicitudes.html` | Docente |
-| 9 | Chat | `compartidas/chat.html` | Ambos |
-| 10 | Clases virtuales | `compartidas/clases-virtuales.html` | Ambos |
+| GET | `/salud` | Comprobar que la API responde | Público |
+| GET | `/configuracion` | Datos públicos para conectar el navegador con Supabase | Público |
+| GET | `/catalogos` | Materias, niveles educativos y ciudades | Público |
+| GET | `/yo` | Perfil del usuario actual 🔒 | Ambos |
+| PATCH | `/yo` | Actualizar nombre, teléfono o ciudad 🔒 | Ambos |
+| POST | `/yo/rol` | Elegir rol la primera vez que se entra con Google 🔒 | Ambos |
+| PUT / DELETE | `/yo/google` | Conectar o desconectar Google Calendar 🔒 | Docente |
+| GET | `/tutores` | Buscar por materia, nivel, modalidad, ciudad y fecha 🔒 | Ambos |
+| GET | `/tutores/:id` | Perfil del tutor, reseñas y horarios libres 🔒 | Ambos |
+| GET / PUT | `/docente/configuracion` | Materias, tarifa, modalidades y disponibilidad semanal 🔒 | Docente |
+| GET | `/tutorias?vista=` | Mis clases: `proximas`, `pendientes`, `virtuales`, `historial` 🔒 | Ambos |
+| POST | `/tutorias` | Reservar una clase (queda por aceptar) 🔒 | Estudiante |
+| PATCH | `/tutorias/:id` | Cambiar estado: `confirmada`, `rechazada`, `cancelada`, `completada` 🔒 | Según regla |
+| POST | `/tutorias/:id/resena` | Calificar de 1 a 5 estrellas 🔒 | Estudiante |
+| GET / POST | `/conversaciones` | Listar o abrir conversaciones 🔒 | Ambos |
+| GET / POST | `/conversaciones/:id/mensajes` | Leer o enviar mensajes 🔒 | Ambos |
+| GET / POST | `/solicitudes` | Tiempo real: ver o publicar solicitudes 🔒 | Ambos / Estudiante |
+| GET / PATCH | `/solicitudes/:id` | Ver ofertas o cancelar la solicitud 🔒 | Ambos / Estudiante |
+| POST | `/solicitudes/:id/ofertas` | Ofertar una tarifa 🔒 | Docente |
+| PATCH | `/ofertas/:id` | Aceptar una oferta (crea la clase) o retirarla 🔒 | Según regla |
 
-Las pantallas 5 y 8 corresponden a la reserva en tiempo real (estilo InDrive / Uber), que es una funcionalidad opcional. Están diseñadas y navegables; la decisión de implementar su lógica completa se tomará más adelante según el tiempo y el alcance del equipo.
+Los errores siempre responden con el mismo formato: `{ "error": { "codigo": "...", "mensaje": "..." } }`.
 
-## Diseño responsive: una sola versión para web y móvil
+## Reglas de negocio implementadas
 
-Cada pantalla es **un único archivo HTML** que se adapta al tamaño del dispositivo con CSS (`css/styles.css`, punto de quiebre en 860 px):
+* **Registro con rol:** al registrarse se elige estudiante o docente; quien entra con Google lo elige una sola vez.
+* **Búsqueda:** por materia, nivel educativo, modalidad, ciudad (área geográfica) y disponibilidad en una fecha.
+* **Reserva:** solo dentro de la disponibilidad semanal del docente, en el futuro y sin cruzarse con otra clase.
+* **Aceptar o rechazar:** la reserva queda pendiente hasta que el docente la acepta o la rechaza.
+* **Videoconferencia:** al aceptar, se crea el evento en Google Calendar con el enlace de Meet.
+* **Avisos por correo:** nueva solicitud, clase confirmada, rechazada o cancelada.
+* **Reputación:** solo se califica una clase completada, una vez, y el promedio del docente se recalcula solo.
+* **Tiempo real (opcional, estilo InDrive):** el estudiante publica tema y precio, los docentes ofertan y al aceptar una oferta se crea la clase y se cierran las demás.
+* **Seguridad:** cada usuario solo ve sus clases, conversaciones y solicitudes; la base además tiene seguridad por filas.
 
-* **En computador (versión web):** menú en la parte superior, contenido en columnas y tarjetas en cuadrícula.
-* **En celular (versión móvil):** barra de navegación fija en la parte inferior, contenido en una sola columna y filtros deslizables.
-
-Para verlo, basta con abrir cualquier pantalla y reducir el ancho de la ventana, o usar el modo de dispositivo móvil de las herramientas de desarrollador del navegador.
-
-Cada rol tiene su color de acento para que el usuario sepa siempre en qué contexto está: **turquesa** para el estudiante, **ámbar** para el docente y **coral** para todo lo que ocurre en tiempo real.
-
-## Por qué hay un archivo de JavaScript
-
-Las interfaces están construidas solo con **HTML y CSS**. Los formularios, los selectores de horario, la cuadrícula de disponibilidad, el cambio entre "Estudiante" y "Docente" en el registro y las ventanas de confirmación funcionan sin programación (usan casillas, botones de opción y el selector `:target` de CSS).
-
-El proyecto incluye **un único archivo de JavaScript**, `js/rol.js`, de unas 30 líneas y **sin lógica de negocio**. Existe por una decisión de diseño:
-
-* **El problema:** el Chat y las Clases virtuales los usan los dos roles, pero el menú cambia (el estudiante ve "Agendar", el docente ve "Disponibilidad") y también el color de acento y la lista de contactos.
-* **Sin JavaScript** habría que tener dos copias casi idénticas de esas pantallas (una por rol), es decir, código duplicado que hay que mantener sincronizado.
-* **Con `rol.js`** hay un solo archivo por pantalla. El script solo lee qué rol entró (del enlace `?rol=docente` o del último rol usado, guardado en el navegador) y lo marca en la página; el CSS se encarga de mostrar el menú y el color correctos.
-* **Si el navegador tiene JavaScript apagado**, la pantalla igual se ve completa, con la vista de estudiante por defecto.
-
-Esto sigue el principio de no repetir código y deja cada pantalla con una sola fuente de verdad.
-
-## Estructura del proyecto
+## Estructura del repositorio
 
 ```
-tutoresonline/
-├── index.html                  Login
-├── registro.html               Registro
-├── estudiante/                 Pantallas propias del estudiante
-├── docente/                    Pantallas propias del docente
-├── compartidas/                Chat y Clases virtuales (ambos roles)
-├── css/styles.css              Estilos únicos, responsive
-└── js/rol.js                   Único script: rol en pantallas compartidas
+frontend/                 Pantallas (lo que publica Netlify)
+├── index.html, registro.html
+├── estudiante/  docente/  compartidas/
+├── css/styles.css        Estilos responsive (web y móvil)
+└── js/
+    ├── app.js            Sesión, llamadas a la API y utilidades compartidas
+    ├── rol.js            Menú correcto en las pantallas compartidas
+    └── paginas/          Un archivo por pantalla
+backend/
+├── src/                  API (ver organización arriba)
+├── tests/                Pruebas automáticas de la API
+├── database/             schema.sql, seed.sql, seed_demo.sql y diagrama
+└── server.js             Servidor para correr todo en local
+netlify/functions/api.js  Punto de entrada de la API en Netlify
+netlify.toml              Configuración de publicación
 ```
+
+## Cómo correrlo en el computador
+
+1. Instalar [Node.js](https://nodejs.org) 18 o superior.
+2. Copiar `.env.ejemplo` como `.env` y llenar las variables de Supabase.
+3. Ejecutar `npm install` y luego `npm run dev`.
+4. Abrir `http://localhost:8888`.
+
+## Pruebas automáticas
+
+`npm test` corre 10 pruebas de punta a punta contra una base PostgreSQL con el esquema cargado (variable `TEST_DATABASE_URL`). Cubren: búsqueda, reservas y cruces de horario, aceptar y rechazar, cancelar, completar y calificar, chat privado, tiempo real y elección de rol.
+
+## Usuarios de demostración
+
+Si se carga `backend/database/seed_demo.sql`, quedan estos usuarios con la contraseña `Demo1234*`, que usan los botones "Entrar como estudiante" y "Entrar como docente" del login:
+
+* Estudiante: `maria.restrepo@tutores.com`
+* Docente: `carlos.fuentes@tutores.com`
 
 ## Tecnologías
 
-* HTML5 semántico y CSS3 (Grid, Flexbox, variables CSS, media queries)
-* Tipografías Fraunces e Inter (Google Fonts)
-* PostgreSQL en Supabase (Auth, Row Level Security, Realtime)
-* Google Calendar API para crear el evento y el enlace de Google Meet de cada clase
+* **Pantallas:** HTML5, CSS3 (Grid, Flexbox, media queries) y JavaScript en módulos.
+* **API:** Node.js, Express, `pg` y `jose`, publicada en Netlify Functions.
+* **Datos y sesión:** PostgreSQL y Auth de Supabase.
+* **Integraciones:** Google Calendar API (Meet) y Resend (correo).
