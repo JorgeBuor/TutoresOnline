@@ -8,18 +8,18 @@
  *  4. Utilidades de interfaz compartidas: formato de fechas y dinero, avisos y ventanas.
  */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-
+ 
 const ZONA = 'America/Bogota';
 export const INICIO = { estudiante: '/estudiante/inicio.html', docente: '/docente/inicio.html' };
 export const ALCANCE_CALENDARIO = 'https://www.googleapis.com/auth/calendar.events';
-
+ 
 let supabase = null;
 let usuarioActual = null;
-
+ 
 /* ------------------------------------------------------------------ */
 /* Conexión                                                            */
 /* ------------------------------------------------------------------ */
-
+ 
 async function cliente() {
   if (supabase) return supabase;
   const respuesta = await fetch('/api/configuracion');
@@ -29,7 +29,7 @@ async function cliente() {
     throw new Error('Falta configurar Supabase en las variables de entorno del servidor');
   }
   supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
-
+ 
   // Al entrar con Google, Supabase entrega una sola vez el permiso de Google Calendar.
   // Se guarda para enviarlo a la API apenas se sepa que la persona es docente.
   supabase.auth.onAuthStateChange((_evento, sesion) => {
@@ -39,11 +39,11 @@ async function cliente() {
   });
   return supabase;
 }
-
+ 
 export async function auth() {
   return (await cliente()).auth;
 }
-
+ 
 /** Llama a la API propia. Lanza un Error con el mensaje legible si la respuesta no es exitosa. */
 export async function api(ruta, { metodo = 'GET', cuerpo } = {}) {
   const sb = await cliente();
@@ -62,11 +62,11 @@ export async function api(ruta, { metodo = 'GET', cuerpo } = {}) {
   if (!respuesta.ok) throw new Error(datos?.error?.mensaje || 'No se pudo completar la acción');
   return datos;
 }
-
+ 
 /* ------------------------------------------------------------------ */
 /* Sesión y protección de pantallas                                    */
 /* ------------------------------------------------------------------ */
-
+ 
 /**
  * Debe llamarse al cargar cada pantalla privada. Devuelve el perfil del usuario.
  * Si la pantalla es de un rol (data-pagina-rol) y el usuario tiene otro, lo lleva a su inicio.
@@ -80,9 +80,10 @@ export async function iniciarPagina() {
       return new Promise(() => {});
     }
     let usuario = await api('/yo');
+    pintarUsuario(usuario, false);
     usuario = await asegurarRol(usuario);
     await guardarPermisoGoogle(usuario, data.session);
-
+ 
     const rolPagina = document.body.dataset.paginaRol;
     if (rolPagina && rolPagina !== usuario.rol) {
       location.replace(INICIO[usuario.rol]);
@@ -99,11 +100,11 @@ export async function iniciarPagina() {
     throw error;
   }
 }
-
+ 
 export function usuario() {
   return usuarioActual;
 }
-
+ 
 /** Quien entró con Google por primera vez todavía no ha elegido si es estudiante o docente. */
 async function asegurarRol(usuario) {
   if (usuario.rol_confirmado) return usuario;
@@ -113,7 +114,7 @@ async function asegurarRol(usuario) {
   try { localStorage.removeItem('tutores-rol-pendiente'); } catch { /* sin almacenamiento */ }
   return api('/yo/rol', { metodo: 'POST', cuerpo: { rol } });
 }
-
+ 
 function preguntarRol() {
   return new Promise((resolver) => {
     const ventana = crearVentana(`
@@ -131,7 +132,7 @@ function preguntarRol() {
     }));
   });
 }
-
+ 
 async function guardarPermisoGoogle(usuario, sesion) {
   let token = sesion.provider_refresh_token || null;
   try { token = token || sessionStorage.getItem('tutores-google-rt'); } catch { /* sin almacenamiento */ }
@@ -144,15 +145,15 @@ async function guardarPermisoGoogle(usuario, sesion) {
     console.error(error);
   }
 }
-
+ 
 export async function cerrarSesion() {
   try { await (await auth()).signOut(); } finally {
     try { localStorage.removeItem('tutores-rol'); } catch { /* sin almacenamiento */ }
     location.href = '/index.html';
   }
 }
-
-function pintarUsuario(u) {
+ 
+function pintarUsuario(u, conEventos = true) {
   const nombre = u.nombre_completo || u.email;
   const corto = nombre.split(' ').slice(0, 2).join(' ');
   document.querySelectorAll('[data-usuario="nombre"]').forEach((e) => { e.textContent = corto; });
@@ -162,25 +163,26 @@ function pintarUsuario(u) {
     e.textContent = iniciales(nombre);
     e.className = `avatar chico ${claseAvatar(u.id)}`;
   });
+  if (!conEventos) return;
   document.querySelectorAll('[data-accion="salir"]').forEach((e) => e.addEventListener('click', (ev) => {
     ev.preventDefault();
     cerrarSesion();
   }));
 }
-
+ 
 /* ------------------------------------------------------------------ */
 /* Ventanas y avisos                                                   */
 /* ------------------------------------------------------------------ */
-
+ 
 export function abrirVentana(id) {
   document.getElementById(id)?.classList.add('abierto');
 }
-
+ 
 export function cerrarVentana(id) {
   document.getElementById(id)?.classList.remove('abierto');
   if (location.hash === `#${id}`) history.replaceState(null, '', location.pathname + location.search);
 }
-
+ 
 /** Conecta los botones data-abrir / data-cerrar y el clic fuera de la ventana. */
 export function activarVentanas() {
   if (document.body.dataset.ventanasActivas) return;
@@ -193,7 +195,7 @@ export function activarVentanas() {
     if (ev.target.classList?.contains('modal') && !ev.target.dataset.fija) ev.target.classList.remove('abierto');
   });
 }
-
+ 
 /** Crea una ventana temporal con el HTML dado. Devuelve el elemento .modal. */
 export function crearVentana(contenido, { cerrable = true } = {}) {
   const ventana = document.createElement('div');
@@ -211,7 +213,7 @@ export function crearVentana(contenido, { cerrable = true } = {}) {
   document.body.appendChild(ventana);
   return ventana;
 }
-
+ 
 export function aviso(mensaje, tipo = '') {
   let zona = document.getElementById('avisos');
   if (!zona) {
@@ -226,7 +228,7 @@ export function aviso(mensaje, tipo = '') {
   zona.appendChild(elemento);
   setTimeout(() => elemento.remove(), tipo === 'error' ? 6000 : 3500);
 }
-
+ 
 /** Ejecuta una acción mostrando el botón ocupado y avisando si falla. */
 export async function conBoton(boton, accion) {
   if (boton) { boton.classList.add('ocupado'); boton.disabled = true; }
@@ -239,54 +241,54 @@ export async function conBoton(boton, accion) {
     if (boton) { boton.classList.remove('ocupado'); boton.disabled = false; }
   }
 }
-
+ 
 export function mostrarError(formulario, mensaje) {
   const caja = formulario.querySelector('[data-error]');
   if (!caja) return aviso(mensaje, 'error');
   caja.textContent = mensaje;
   caja.hidden = !mensaje;
 }
-
+ 
 /* ------------------------------------------------------------------ */
 /* Formato                                                             */
 /* ------------------------------------------------------------------ */
-
+ 
 export function escapar(texto) {
   return String(texto ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
-
+ 
 /** Quita títulos como Dr., Ing. o Prof. del inicio de un nombre. */
 export function sinTitulo(nombre = '') {
   return nombre.replace(/^(Dr|Dra|Ing|Mtra|Mtro|Prof|Lic)\.?\s+/i, '');
 }
-
+ 
 export function iniciales(nombre = '') {
   const partes = sinTitulo(nombre).split(/\s+/).filter(Boolean);
   return ((partes[0]?.[0] || '') + (partes[1]?.[0] || '')).toUpperCase() || '?';
 }
-
+ 
 export function claseAvatar(id = '') {
   let suma = 0;
   for (const c of String(id)) suma += c.charCodeAt(0);
   return `c${(suma % 6) + 1}`;
 }
-
+ 
 export function avatar(nombre, id, chico = false) {
   return `<span class="avatar ${claseAvatar(id)}${chico ? ' chico' : ''}" aria-hidden="true">${escapar(iniciales(nombre))}</span>`;
 }
-
+ 
 export function dinero(valor) {
   return `$${Math.round(Number(valor) || 0).toLocaleString('es-CO')}`;
 }
-
+ 
 export function fechaClave(fecha = new Date()) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit' }).format(fecha);
 }
-
+ 
 export function hora(fecha) {
   return new Intl.DateTimeFormat('es-CO', { timeZone: ZONA, hour: 'numeric', minute: '2-digit' }).format(new Date(fecha));
 }
-
+ 
 export function fechaHora(fecha) {
   const d = new Date(fecha);
   const clave = fechaClave(d);
@@ -295,7 +297,7 @@ export function fechaHora(fecha) {
   const dia = new Intl.DateTimeFormat('es-CO', { timeZone: ZONA, weekday: 'short', day: 'numeric', month: 'short' }).format(d);
   return `${dia.charAt(0).toUpperCase()}${dia.slice(1)}, ${hora(d)}`;
 }
-
+ 
 export function haceCuanto(fecha) {
   const minutos = Math.max(0, Math.round((Date.now() - new Date(fecha).getTime()) / 60000));
   if (minutos < 1) return 'hace un momento';
@@ -303,15 +305,15 @@ export function haceCuanto(fecha) {
   const horas = Math.round(minutos / 60);
   return horas < 24 ? `hace ${horas} h` : fechaHora(fecha);
 }
-
+ 
 export const ESTADOS = {
   pendiente: 'Por aceptar', confirmada: 'Confirmada', rechazada: 'Rechazada', cancelada: 'Cancelada', completada: 'Completada',
 };
-
+ 
 export function etiquetaEstado(estado) {
   return `<span class="estado ${estado}">${ESTADOS[estado] || estado}</span>`;
 }
-
+ 
 /* Íconos compartidos (mismo trazo que el diseño) */
 const trazo = (d) => `<svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 export const ICONOS = {
@@ -323,12 +325,12 @@ export const ICONOS = {
   x: trazo('<path d="M18 6 6 18M6 6l12 12"/>'),
   estrella: '<svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2z"/></svg>',
 };
-
+ 
 export function estrellas(promedio, total) {
   if (!Number(total)) return '<span class="estrellas">Nuevo</span>';
   return `<span class="estrellas">${ICONOS.estrella}${Number(promedio).toFixed(1)}</span>`;
 }
-
+ 
 export function vacio(texto, boton = '') {
   return `<div class="vacio">${texto}${boton ? `<br>${boton}` : ''}</div>`;
 }
