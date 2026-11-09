@@ -129,7 +129,8 @@ test('el docente configura materias, tarifa y disponibilidad', async () => {
     });
     assert.equal(r.status, 200, JSON.stringify(r.datos));
     assert.equal(r.datos.materias.length, 2);
-    assert.equal(r.datos.disponibilidad.length, 7);
+    assert.equal(r.datos.disponibilidad.length, 14, 'la cuadrícula general se copia a cada una de las 2 materias');
+    assert.equal(r.datos.materias[0].disponibilidad.length, 7);
   }
 
   const cruce = await api('PUT', '/docente/configuracion', {
@@ -497,4 +498,60 @@ test('el estudiante elige cuántas horas: solo se ofrecen inicios donde cabe tod
   assert.equal((await reservar('09:00', 120)).status, 201, 'cruza de un bloque al siguiente sin problema');
   assert.deepEqual(await horas(60), ['08:00', '11:00'], 'las horas reservadas ya no se ofrecen');
   assert.equal((await api('GET', `/tutores?materia_id=${fisica}&duracion_min=20`, { token: u.estudiante.token })).status, 400);
+});
+
+test('cada materia tiene su propia cuadrícula y tarifa, como pipelines separados', async () => {
+  const ana = await crearUsuario('Ana Ruiz', 'docente');
+  const catalogos = (await api('GET', '/catalogos')).datos;
+  const id = (n) => catalogos.materias.find((m) => m.nombre === n).id;
+  const universitario = catalogos.niveles.find((n) => n.nombre === 'Universitario').id;
+  const bachillerato = catalogos.niveles.find((n) => n.nombre === 'Bachillerato').id;
+  const dia = new Date(`${manana}T12:00:00Z`).getUTCDay();
+  const guardado = await api('PUT', '/docente/configuracion', {
+    token: ana.token,
+    cuerpo: {
+      ofrece_virtual: true,
+      materias: [
+        { materia_id: id('Estadística'), nivel_id: universitario, tarifa_hora: 40000,
+          disponibilidad: [{ dia_semana: dia, hora_inicio: '08:00', hora_fin: '10:00' }] },
+        { materia_id: id('Estadística'), nivel_id: bachillerato, tarifa_hora: 20000,
+          disponibilidad: [{ dia_semana: dia, hora_inicio: '14:00', hora_fin: '16:00' }] },
+        { materia_id: id('Desarrollo Web'), nivel_id: universitario, tarifa_hora: 50000, disponibilidad: [] },
+      ],
+    },
+  });
+  assert.equal(guardado.status, 200, JSON.stringify(guardado.datos));
+  const porNivel = (n) => guardado.datos.materias.find((m) => m.materia_id === id('Estadística') && m.nivel_id === n);
+  assert.equal(porNivel(universitario).disponibilidad[0].hora_inicio, '08:00');
+  assert.equal(porNivel(bachillerato).disponibilidad[0].hora_inicio, '14:00');
+
+  // El estudiante ve una tarjeta por cada nivel, con su tarifa y solo los horarios de esa cuadrícula
+  const r = await api('GET', `/tutores?materia_id=${id('Estadística')}&fecha=${manana}`, { token: u.estudiante.token });
+  const ofertas = r.datos.tutores.filter((t) => t.docente_id === ana.id);
+  assert.equal(ofertas.length, 2);
+  const uni = ofertas.find((o) => o.materias[0].nivel_id === universitario);
+  const bach = ofertas.find((o) => o.materias[0].nivel_id === bachillerato);
+  assert.deepEqual(uni.horarios.map((h) => h.hora), ['08:00', '09:00']);
+  assert.equal(Number(uni.materias[0].tarifa_hora), 40000);
+  assert.deepEqual(bach.horarios.map((h) => h.hora), ['14:00', '15:00']);
+  const soloBach = await api('GET', `/tutores?materia_id=${id('Estadística')}&nivel_id=${bachillerato}&fecha=${manana}`, { token: u.estudiante.token });
+  assert.equal(soloBach.datos.tutores.filter((t) => t.docente_id === ana.id).length, 1);
+
+  // Una materia sin cuadrícula no aparece como tutor disponible ni cuenta en el catálogo
+  const web = (await api('GET', '/catalogos')).datos.materias.find((m) => m.nombre === 'Desarrollo Web');
+  assert.equal(web.tutores, 0);
+
+  // No se puede reservar Estadística universitaria en el horario de bachillerato
+  const reservar = (hora, nivel) => api('POST', '/tutorias', {
+    token: u.estudiante.token,
+    cuerpo: { docente_id: ana.id, materia_id: id('Estadística'), nivel_id: nivel, inicio: aLas(hora), modalidad: 'virtual' },
+  });
+  assert.equal((await reservar('14:00', universitario)).status, 409);
+  const ok = await reservar('14:00', bachillerato);
+  assert.equal(ok.status, 201);
+  assert.equal(Number(ok.datos.tarifa_hora), 20000);
+
+  // Al reservar, ese rato queda ocupado para todas sus materias
+  const despues = await api('GET', `/tutores?materia_id=${id('Estadística')}&nivel_id=${bachillerato}&fecha=${manana}`, { token: u.estudiante.token });
+  assert.deepEqual(despues.datos.tutores.find((t) => t.docente_id === ana.id).horarios.map((h) => h.hora), ['15:00']);
 });

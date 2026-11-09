@@ -13,8 +13,25 @@ const [catalogos, config, publica] = await Promise.all([
 const nombreMateria = new Map(catalogos.materias.map((m) => [m.id, m.nombre]));
 const nombreNivel = new Map(catalogos.niveles.map((n) => [n.id, n.nombre]));
 
-// Materias elegidas: [{ materia_id, nivel_id }]
-let materias = config.materias.map(({ materia_id, nivel_id }) => ({ materia_id, nivel_id }));
+/*
+ * Cada materia y nivel es un "pipeline" con su propia tarifa y su propia cuadrícula:
+ * [{ materia_id, nivel_id, tarifa, bloques: Set("dia|hora") }]. La pantalla muestra una a la vez.
+ */
+const claveBloque = (dia, hora) => `${dia}|${hora}`;
+const materias = config.materias.map((m) => ({
+  materia_id: m.materia_id,
+  nivel_id: m.nivel_id,
+  tarifa: Math.round(m.tarifa_hora).toLocaleString('es-CO'),
+  bloques: new Set(m.disponibilidad.map((b) => claveBloque(b.dia_semana, b.hora_inicio))),
+}));
+// Se abre primero una materia que ya tenga horario
+let activa = Math.max(0, materias.findIndex((m) => m.bloques.size));
+const nuevaMateria = (materiaId, nivelId) => ({
+  materia_id: materiaId,
+  nivel_id: nivelId,
+  tarifa: materias[activa]?.tarifa || '',   // se propone la tarifa de la materia que estaba abierta
+  bloques: new Set(),
+});
 
 // Compara nombres sin importar mayúsculas, tildes ni espacios
 const clave = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -31,7 +48,7 @@ if (!materias.length) {
     const m = catalogos.materias.find((x) => clave(x.nombre) === k)
       || catalogos.materias.find((x) => clave(x.nombre).includes(k) || k.includes(clave(x.nombre)));
     if (m) {
-      if (!materias.some((x) => x.materia_id === m.id)) materias.push({ materia_id: m.id, nivel_id: universitario });
+      if (!materias.some((x) => x.materia_id === m.id)) materias.push(nuevaMateria(m.id, universitario));
     } else {
       porCrear.push(texto);
     }
@@ -39,11 +56,49 @@ if (!materias.length) {
   if (materias.length) aviso('Agregamos las materias que escribiste al registrarte. Revisa y guarda.');
 }
 
+const nombreDe = (m) => `${nombreMateria.get(m.materia_id)} · ${nombreNivel.get(m.nivel_id)}`;
+const horasDe = (m) => m.bloques.size * 2;
+const selActiva = document.getElementById('materia-activa');
+const selCopiar = document.getElementById('copiar-de');
+const campoTarifa = document.getElementById('tarifa-d');
+const celdas = [...document.querySelectorAll('.cuadricula input')];
+
+/** Lista de la derecha: cada materia con sus horas marcadas y su tarifa; la abierta se resalta. */
 function pintarMaterias() {
   listaMaterias.innerHTML = materias.length
-    ? materias.map((m, i) => `<span class="etiqueta-materia">${escapar(nombreMateria.get(m.materia_id))} · ${escapar(nombreNivel.get(m.nivel_id))}
-        <button type="button" data-quitar="${i}" aria-label="Quitar materia">${ICONOS.x}</button></span>`).join('')
+    ? materias.map((m, i) => `
+      <div class="pipeline-item${i === activa ? ' activa' : ''}" data-elegir="${i}" role="button" tabindex="0">
+        <span class="texto"><span class="nombre">${escapar(nombreDe(m))}</span>
+          ${m.bloques.size
+            ? `<span class="detalle">${horasDe(m)} h por semana${m.tarifa ? ` · $${escapar(m.tarifa)}/h` : ''}</span>`
+            : '<span class="detalle alerta">Sin horario: no aparece en la búsqueda</span>'}</span>
+        <button type="button" class="quitar" data-quitar="${i}" aria-label="Quitar ${escapar(nombreDe(m))}">${ICONOS.x}</button>
+      </div>`).join('')
     : '<span class="ayuda">Agrega al menos una materia para aparecer en las búsquedas</span>';
+}
+
+/** Cuadrícula y tarifa de la materia abierta. */
+function pintarActiva() {
+  const hay = materias.length > 0;
+  document.getElementById('pipeline').hidden = !hay;
+  document.getElementById('titulo-cuadricula').hidden = !hay;
+  document.querySelector('.cuadricula').hidden = !hay;
+  document.getElementById('sin-materias').hidden = hay;
+  if (!hay) { pintarMaterias(); return; }
+  activa = Math.min(activa, materias.length - 1);
+  const m = materias[activa];
+  selActiva.innerHTML = materias.map((x, i) => `<option value="${i}"${i === activa ? ' selected' : ''}>${escapar(nombreDe(x))}</option>`).join('');
+  selCopiar.innerHTML = '<option value="">Copiar horario de…</option>' + materias
+    .map((x, i) => (i === activa || !x.bloques.size ? '' : `<option value="${i}">${escapar(nombreDe(x))}</option>`)).join('');
+  selCopiar.hidden = selCopiar.options.length === 1;
+  campoTarifa.value = m.tarifa;
+  for (const c of celdas) c.checked = m.bloques.has(claveBloque(c.dataset.dia, c.dataset.hora));
+  pintarMaterias();
+}
+
+function elegir(i) {
+  activa = i;
+  pintarActiva();
 }
 
 function pintarGoogle(conectado, permiso) {
@@ -62,16 +117,38 @@ function pintarGoogle(conectado, permiso) {
 document.getElementById('mod-virtual').checked = config.perfil.ofrece_virtual;
 document.getElementById('mod-presencial').checked = config.perfil.ofrece_presencial;
 document.getElementById('zona-d').value = config.perfil.zona_presencial || '';
-if (config.materias.length) document.getElementById('tarifa-d').value = Math.round(config.materias[0].tarifa_hora).toLocaleString('es-CO');
-for (const b of config.disponibilidad) {
-  const celda = document.querySelector(`input[data-dia="${b.dia_semana}"][data-hora="${b.hora_inicio}"]`);
-  if (celda) celda.checked = true;
-}
 const campoZona = document.getElementById('campo-zona');
 const actualizarZona = () => { campoZona.hidden = !document.getElementById('mod-presencial').checked; };
 document.getElementById('mod-presencial').addEventListener('change', actualizarZona);
 actualizarZona();
-pintarMaterias();
+pintarActiva();
+
+// La cuadrícula, la tarifa y las herramientas editan solo la materia abierta
+document.querySelector('.cuadricula').addEventListener('change', (ev) => {
+  const c = ev.target;
+  if (!c.dataset.dia || !materias[activa]) return;
+  const k = claveBloque(c.dataset.dia, c.dataset.hora);
+  if (c.checked) materias[activa].bloques.add(k); else materias[activa].bloques.delete(k);
+  pintarMaterias();
+});
+campoTarifa.addEventListener('input', () => {
+  if (!materias[activa]) return;
+  materias[activa].tarifa = campoTarifa.value;
+  pintarMaterias();
+});
+selActiva.addEventListener('change', () => elegir(Number(selActiva.value)));
+selCopiar.addEventListener('change', () => {
+  const origen = materias[Number(selCopiar.value)];
+  if (!origen) return;
+  materias[activa].bloques = new Set(origen.bloques);
+  pintarActiva();
+  aviso(`Copiamos el horario de ${nombreDe(origen)}. Ajústalo si quieres y guarda.`);
+});
+document.getElementById('limpiar').addEventListener('click', () => {
+  if (!materias[activa]) return;
+  materias[activa].bloques.clear();
+  pintarActiva();
+});
 pintarGoogle(yo.google_conectado, config.google);
 if (yo.google_conectado && config.google === 'sin_permiso') {
   aviso('Actualiza el permiso de Google para que tus eventos del calendario bloqueen horarios automáticamente.');
@@ -121,13 +198,16 @@ selMateria.addEventListener('change', () => {
 });
 
 function agregarALista(materiaId) {
-  const nueva = { materia_id: materiaId, nivel_id: Number(document.getElementById('am-n').value) };
-  if (materias.some((m) => m.materia_id === nueva.materia_id && m.nivel_id === nueva.nivel_id)) {
+  const nivelId = Number(document.getElementById('am-n').value);
+  const existente = materias.findIndex((m) => m.materia_id === materiaId && m.nivel_id === nivelId);
+  if (existente >= 0) {
     aviso('Esa materia ya está en tu lista', 'error');
+    elegir(existente);
     return;
   }
-  materias.push(nueva);
-  pintarMaterias();
+  materias.push(nuevaMateria(materiaId, nivelId));
+  elegir(materias.length - 1);
+  aviso(`Ahora marca el horario y la tarifa de ${nombreDe(materias[activa])}.`);
 }
 
 function terminarAgregar() {
@@ -173,9 +253,19 @@ document.querySelector('#agregar-materia [data-cerrar]').addEventListener('click
 if (porCrear.length) setTimeout(() => proponerNueva(porCrear.shift()), 600);
 listaMaterias.addEventListener('click', (ev) => {
   const quitar = ev.target.closest('[data-quitar]');
-  if (!quitar) return;
-  materias.splice(Number(quitar.dataset.quitar), 1);
-  pintarMaterias();
+  if (quitar) {
+    const i = Number(quitar.dataset.quitar);
+    materias.splice(i, 1);
+    if (activa >= i && activa > 0) activa -= 1;
+    pintarActiva();
+    return;
+  }
+  const item = ev.target.closest('[data-elegir]');
+  if (item) elegir(Number(item.dataset.elegir));
+});
+listaMaterias.addEventListener('keydown', (ev) => {
+  const item = ev.target.closest('[data-elegir]');
+  if (item && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); elegir(Number(item.dataset.elegir)); }
 });
 
 // Conectar Google Calendar a una cuenta creada con correo
@@ -191,15 +281,20 @@ estadoGoogle.addEventListener('click', (ev) => {
   });
 });
 
-// Guardar todo
+// Guardar todo: cada materia con su tarifa y su cuadrícula
+const aBloque = (k) => {
+  const [dia, hora] = k.split('|');
+  const [h, m] = hora.split(':').map(Number);
+  return { dia_semana: Number(dia), hora_inicio: hora, hora_fin: `${String(h + 2).padStart(2, '0')}:${String(m).padStart(2, '0')}` };
+};
 document.getElementById('guardar').addEventListener('click', (ev) => {
   mostrarError(lado, '');
-  const tarifa = document.getElementById('tarifa-d').value;
-  const bloques = [...document.querySelectorAll('.cuadricula input:checked')].map((c) => {
-    const [h, m] = c.dataset.hora.split(':').map(Number);
-    return { dia_semana: Number(c.dataset.dia), hora_inicio: c.dataset.hora, hora_fin: `${String(h + 2).padStart(2, '0')}:${String(m).padStart(2, '0')}` };
-  });
-  if (materias.length && !tarifa) return mostrarError(lado, 'Escribe tu tarifa por hora');
+  const sinTarifa = materias.findIndex((m) => !m.tarifa);
+  if (sinTarifa >= 0) {
+    elegir(sinTarifa);
+    campoTarifa.focus();
+    return mostrarError(lado, `Escribe la tarifa por hora de ${nombreDe(materias[sinTarifa])}`);
+  }
 
   conBoton(ev.currentTarget, async () => {
     try {
@@ -209,13 +304,20 @@ document.getElementById('guardar').addEventListener('click', (ev) => {
           ofrece_virtual: document.getElementById('mod-virtual').checked,
           ofrece_presencial: document.getElementById('mod-presencial').checked,
           zona_presencial: document.getElementById('zona-d').value,
-          materias: materias.map((m) => ({ ...m, tarifa_hora: tarifa })),
-          disponibilidad: bloques,
+          materias: materias.map((m) => ({
+            materia_id: m.materia_id,
+            nivel_id: m.nivel_id,
+            tarifa_hora: m.tarifa,
+            disponibilidad: [...m.bloques].map(aBloque),
+          })),
         },
       });
       try { localStorage.removeItem('tutores-materias-sugeridas'); } catch { /* sin almacenamiento */ }
-      const t = guardado.materias[0]?.tarifa_hora;
-      aviso(`Guardado: ${guardado.materias.length} materias${t ? ` a ${dinero(t)}/h` : ''} y ${guardado.disponibilidad.length} bloques. Ya apareces en la búsqueda.`, 'exito');
+      const conHorario = guardado.materias.filter((m) => m.disponibilidad.length).length;
+      const sinHorario = guardado.materias.length - conHorario;
+      aviso(conHorario
+        ? `Guardado: ${conHorario} ${conHorario === 1 ? 'materia publicada' : 'materias publicadas'} en la búsqueda${sinHorario ? `; ${sinHorario} sin horario todavía` : ''}.`
+        : 'Guardado. Marca el horario de al menos una materia para aparecer en la búsqueda.', conHorario ? 'exito' : '');
     } catch (error) {
       mostrarError(lado, error.message);
     }

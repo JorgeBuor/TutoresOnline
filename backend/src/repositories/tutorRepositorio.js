@@ -70,14 +70,15 @@ class TutorRepositorio extends RepositorioBase {
    * Parte de la disponibilidad semanal y descuenta las clases pendientes o confirmadas.
    */
   /**
-   * Horas de inicio (cada hora en punto) en las que cabe una clase de "duracionMin" minutos:
-   * todo el rato debe estar dentro de los bloques marcados por el docente (pueden ser bloques seguidos,
-   * por ejemplo 10:00 a 12:00 y 12:00 a 14:00) y sin cruzarse con otra clase pendiente o confirmada.
+   * Horas de inicio (cada hora en punto) en las que cabe una clase de "duracionMin" minutos, por cada
+   * materia y nivel del docente: todo el rato debe estar dentro de los bloques marcados en la cuadrícula
+   * de ESA materia (pueden ser bloques seguidos, por ejemplo 10:00 a 12:00 y 12:00 a 14:00) y sin
+   * cruzarse con otra clase pendiente o confirmada del docente, de cualquier materia.
    */
-  horariosLibres(docenteIds, fecha, zonaHoraria, duracionMin = 60) {
+  horariosLibres(docenteIds, fecha, zonaHoraria, duracionMin = 60, { materiaId = null, nivelId = null } = {}) {
     if (!docenteIds.length) return [];
     return this.db.consultar(
-      `select d.docente_id,
+      `select d.docente_id, d.materia_id, d.nivel_id,
               to_char(s.inicio at time zone $3, 'HH24:MI') as hora,
               s.inicio,
               s.inicio + make_interval(mins => $4) as fin
@@ -88,6 +89,8 @@ class TutorRepositorio extends RepositorioBase {
                 interval '1 hour') as g(local)
          cross join lateral (select (g.local at time zone $3) as inicio) s
         where d.docente_id = any($1::uuid[])
+          and ($5::int is null or d.materia_id = $5)
+          and ($6::int is null or d.nivel_id = $6)
           and d.dia_semana = extract(dow from $2::date)
           and s.inicio > now()
           -- cada media hora de la clase cae dentro de algún bloque marcado ese día
@@ -97,6 +100,8 @@ class TutorRepositorio extends RepositorioBase {
                  where not exists (
                          select 1 from disponibilidad d2
                           where d2.docente_id = d.docente_id
+                            and d2.materia_id = d.materia_id
+                            and d2.nivel_id = d.nivel_id
                             and d2.dia_semana = d.dia_semana
                             and (t.local + interval '30 minutes')::date = $2::date
                             and d2.hora_inicio <= t.local::time
@@ -106,8 +111,8 @@ class TutorRepositorio extends RepositorioBase {
                  where tu.docente_id = d.docente_id
                    and tu.estado in ('pendiente', 'confirmada')
                    and tstzrange(tu.inicio, tu.fin) && tstzrange(s.inicio, s.inicio + make_interval(mins => $4)))
-        order by d.docente_id, s.inicio`,
-      [docenteIds, fecha, zonaHoraria, duracionMin],
+        order by d.docente_id, d.materia_id, d.nivel_id, s.inicio`,
+      [docenteIds, fecha, zonaHoraria, duracionMin, materiaId, nivelId],
     );
   }
 
@@ -122,8 +127,8 @@ class TutorRepositorio extends RepositorioBase {
     );
   }
 
-  /** ¿Toda la clase (de inicio a fin) cae dentro de los bloques marcados por el docente ese día? */
-  async dentroDeDisponibilidad(docenteId, inicio, fin, zonaHoraria) {
+  /** ¿Toda la clase (de inicio a fin) cae dentro de la cuadrícula de esa materia (y nivel, si se indica) ese día? */
+  async dentroDeDisponibilidad(docenteId, inicio, fin, zonaHoraria, materiaId, nivelId = null) {
     const fila = await this.db.uno(
       `with clase as (
          select ($2::timestamptz at time zone $4) as desde, ($3::timestamptz at time zone $4) as hasta
@@ -134,11 +139,13 @@ class TutorRepositorio extends RepositorioBase {
                  where not exists (
                          select 1 from disponibilidad d
                           where d.docente_id = $1
+                            and d.materia_id = $5
+                            and ($6::int is null or d.nivel_id = $6)
                             and d.dia_semana = extract(dow from t.local)
                             and d.hora_inicio <= t.local::time
                             and d.hora_fin >= (t.local + interval '30 minutes')::time)) as ok
          from clase c`,
-      [docenteId, inicio, fin, zonaHoraria],
+      [docenteId, inicio, fin, zonaHoraria, materiaId, nivelId],
     );
     return fila.ok;
   }

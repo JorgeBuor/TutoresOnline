@@ -47,7 +47,7 @@ class TutoriaServicio {
     if (!tarifa) throw solicitudInvalida('El docente no enseña esa materia');
 
     const fin = sumarMinutos(inicio, duracion);
-    const disponible = await this.tutores.dentroDeDisponibilidad(docenteId, inicio, fin, this.zona);
+    const disponible = await this.tutores.dentroDeDisponibilidad(docenteId, inicio, fin, this.zona, materiaId, tarifa.nivel_id);
     if (!disponible) throw conflicto('Ese horario no está dentro de la disponibilidad del docente');
     if (this.ocupado && docente.google_conectado && !(await this.ocupado.estaLibre(docenteId, inicio, fin))) {
       throw conflicto('El docente tiene otro compromiso en ese horario. Elige otra hora.');

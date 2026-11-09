@@ -6,7 +6,34 @@ const aMinutos = (hora) => {
   return h * 60 + m;
 };
 
-/** Pantalla "Disponibilidad": modalidades, materias con tarifa y cuadrícula semanal del docente. */
+/** Valida los bloques de una cuadrícula y comprueba que no se crucen el mismo día. */
+function validarBloques(lista, campo) {
+  const bloques = validar.lista(lista ?? [], campo, { max: 100 })
+    .map((b, i) => {
+      const bloque = {
+        dia_semana: validar.entero(b.dia_semana, `${campo}[${i}].dia_semana`, { min: 0, max: 6 }),
+        hora_inicio: validar.hora(b.hora_inicio, `${campo}[${i}].hora_inicio`),
+        hora_fin: validar.hora(b.hora_fin, `${campo}[${i}].hora_fin`),
+      };
+      if (aMinutos(bloque.hora_fin) <= aMinutos(bloque.hora_inicio)) {
+        throw solicitudInvalida('En la disponibilidad, la hora final debe ser mayor que la inicial');
+      }
+      return bloque;
+    })
+    .sort((x, y) => x.dia_semana - y.dia_semana || aMinutos(x.hora_inicio) - aMinutos(y.hora_inicio));
+  for (let i = 1; i < bloques.length; i += 1) {
+    const [anterior, actual] = [bloques[i - 1], bloques[i]];
+    if (anterior.dia_semana === actual.dia_semana && aMinutos(actual.hora_inicio) < aMinutos(anterior.hora_fin)) {
+      throw solicitudInvalida('Hay bloques de disponibilidad que se cruzan el mismo día');
+    }
+  }
+  return bloques;
+}
+
+/**
+ * Pantalla "Disponibilidad": modalidades del docente y, por cada materia y nivel que enseña,
+ * su tarifa y su propia cuadrícula semanal (como pipelines separados).
+ */
 class DocenteServicio {
   constructor({ db, docenteRepositorio, catalogoRepositorio, notificaciones, ocupado }) {
     this.ocupado = ocupado;
@@ -24,7 +51,13 @@ class DocenteServicio {
     ]);
     // Si conectó Google, se comprueba que el permiso para ver su "ocupado" siga vigente
     const google = perfil?.google_conectado && this.ocupado ? await this.ocupado.estado(usuario.id) : 'sin_conexion';
-    return { perfil, materias, disponibilidad, google };
+    const conCuadricula = materias.map((m) => ({
+      ...m,
+      disponibilidad: disponibilidad
+        .filter((d) => d.materia_id === m.materia_id && d.nivel_id === m.nivel_id)
+        .map(({ dia_semana, hora_inicio, hora_fin }) => ({ dia_semana, hora_inicio, hora_fin })),
+    }));
+    return { perfil, materias: conCuadricula, disponibilidad, google };
   }
 
   async guardarConfiguracion(usuario, cuerpo) {
@@ -39,39 +72,23 @@ class DocenteServicio {
       biografia: validar.texto(cuerpo.biografia, 'biografia', { requerido: false, max: 1000 }),
     };
 
+    // Una cuadrícula general (versión anterior de la pantalla) se aplica a las materias que no traen la suya
+    const general = cuerpo.disponibilidad !== undefined ? validarBloques(cuerpo.disponibilidad, 'disponibilidad') : [];
+
     const vistas = new Set();
     const materias = validar.lista(cuerpo.materias ?? [], 'materias', { max: 30 }).map((m, i) => {
       const fila = {
         materia_id: validar.entero(m.materia_id, `materias[${i}].materia_id`, { min: 1 }),
         nivel_id: validar.entero(m.nivel_id, `materias[${i}].nivel_id`, { min: 1 }),
         tarifa_hora: validar.numero(m.tarifa_hora, `materias[${i}].tarifa_hora`, { min: 1000, max: 10000000 }),
+        disponibilidad: m.disponibilidad !== undefined ? validarBloques(m.disponibilidad, `materias[${i}].disponibilidad`) : general,
       };
       const clave = `${fila.materia_id}-${fila.nivel_id}`;
       if (vistas.has(clave)) throw solicitudInvalida('Hay una materia repetida en el mismo nivel');
       vistas.add(clave);
       return fila;
     });
-
-    const bloques = validar.lista(cuerpo.disponibilidad ?? [], 'disponibilidad', { max: 100 })
-      .map((b, i) => {
-        const bloque = {
-          dia_semana: validar.entero(b.dia_semana, `disponibilidad[${i}].dia_semana`, { min: 0, max: 6 }),
-          hora_inicio: validar.hora(b.hora_inicio, `disponibilidad[${i}].hora_inicio`),
-          hora_fin: validar.hora(b.hora_fin, `disponibilidad[${i}].hora_fin`),
-        };
-        if (aMinutos(bloque.hora_fin) <= aMinutos(bloque.hora_inicio)) {
-          throw solicitudInvalida('En la disponibilidad, la hora final debe ser mayor que la inicial');
-        }
-        return bloque;
-      })
-      .sort((a, b) => a.dia_semana - b.dia_semana || aMinutos(a.hora_inicio) - aMinutos(b.hora_inicio));
-
-    for (let i = 1; i < bloques.length; i += 1) {
-      const [anterior, actual] = [bloques[i - 1], bloques[i]];
-      if (anterior.dia_semana === actual.dia_semana && aMinutos(actual.hora_inicio) < aMinutos(anterior.hora_fin)) {
-        throw solicitudInvalida('Hay bloques de disponibilidad que se cruzan el mismo día');
-      }
-    }
+    const bloques = materias.flatMap((m) => m.disponibilidad.map((b) => ({ ...b, materia_id: m.materia_id, nivel_id: m.nivel_id })));
 
     await this.db.transaccion(async (tx) => {
       const repo = this.docentes.con(tx);
@@ -79,7 +96,8 @@ class DocenteServicio {
       await repo.reemplazarMaterias(usuario.id, materias);
       await repo.reemplazarDisponibilidad(usuario.id, bloques);
     });
-    if (materias.length && bloques.length) await this.avisarEstudiantes(usuario, materias);
+    const publicadas = materias.filter((m) => m.disponibilidad.length);
+    if (publicadas.length) await this.avisarEstudiantes(usuario, publicadas);
     return this.obtenerConfiguracion(usuario);
   }
 

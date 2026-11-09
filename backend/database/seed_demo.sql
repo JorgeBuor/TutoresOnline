@@ -65,19 +65,24 @@ insert into docente_materias (docente_id, materia_id, nivel_id, tarifa_hora)
 select '55555555-5555-5555-5555-555555555555', m.id, n.id, 22000
   from materias m, niveles_educativos n where m.nombre = 'Programación en Python' and n.nombre in ('Bachillerato', 'Universitario');
 
--- Disponibilidad semanal del Dr. Carlos (igual a la cuadrícula de la pantalla)
-insert into disponibilidad (docente_id, dia_semana, hora_inicio, hora_fin) values
-  ('22222222-2222-2222-2222-222222222222', 1, '08:00', '10:00'),
-  ('22222222-2222-2222-2222-222222222222', 2, '08:00', '10:00'),
-  ('22222222-2222-2222-2222-222222222222', 4, '08:00', '10:00'),
-  ('22222222-2222-2222-2222-222222222222', 3, '10:00', '12:00'),
-  ('22222222-2222-2222-2222-222222222222', 5, '10:00', '12:00'),
-  ('22222222-2222-2222-2222-222222222222', 1, '14:00', '16:00'),
-  ('22222222-2222-2222-2222-222222222222', 2, '14:00', '16:00'),
-  ('22222222-2222-2222-2222-222222222222', 3, '14:00', '16:00'),
-  ('22222222-2222-2222-2222-222222222222', 4, '16:00', '18:00'),
-  ('22222222-2222-2222-2222-222222222222', 5, '16:00', '18:00'),
-  ('22222222-2222-2222-2222-222222222222', 6, '18:00', '20:00');
+-- Disponibilidad semanal del Dr. Carlos: cada materia tiene su propia cuadrícula
+insert into disponibilidad (docente_id, materia_id, nivel_id, dia_semana, hora_inicio, hora_fin)
+select '22222222-2222-2222-2222-222222222222', m.id, n.id, x.dia, x.desde::time, x.hasta::time
+  from materias m, niveles_educativos n,
+       (values (1, '08:00', '10:00'), (2, '08:00', '10:00'), (4, '08:00', '10:00'), (3, '10:00', '12:00'),
+               (5, '10:00', '12:00'), (1, '14:00', '16:00'), (2, '14:00', '16:00'), (3, '14:00', '16:00'),
+               (4, '16:00', '18:00'), (5, '16:00', '18:00'), (6, '18:00', '20:00')) as x(dia, desde, hasta)
+ where m.nombre = 'Cálculo Multivariable' and n.nombre = 'Universitario';
+insert into disponibilidad (docente_id, materia_id, nivel_id, dia_semana, hora_inicio, hora_fin)
+select '22222222-2222-2222-2222-222222222222', m.id, n.id, x.dia, x.desde::time, x.hasta::time
+  from materias m, niveles_educativos n,
+       (values (2, '18:00', '20:00'), (4, '18:00', '20:00'), (6, '10:00', '12:00')) as x(dia, desde, hasta)
+ where m.nombre = 'Física Cuántica' and n.nombre = 'Universitario';
+insert into disponibilidad (docente_id, materia_id, nivel_id, dia_semana, hora_inicio, hora_fin)
+select '22222222-2222-2222-2222-222222222222', m.id, n.id, x.dia, x.desde::time, x.hasta::time
+  from materias m, niveles_educativos n,
+       (values (1, '10:00', '12:00'), (3, '08:00', '10:00'), (5, '08:00', '10:00')) as x(dia, desde, hasta)
+ where m.nombre = 'Álgebra Lineal' and n.nombre = 'Universitario';
 
 -- Una tutoría ya completada con su reseña, y dos próximas
 insert into tutorias (estudiante_id, docente_id, materia_id, inicio, fin, modalidad, tarifa_hora, estado, meet_url)

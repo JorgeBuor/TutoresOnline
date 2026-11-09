@@ -12,21 +12,32 @@ class OcupadoServicio {
   }
 
   /**
-   * horariosPorDocente: Map(docenteId → [{ hora, inicio, fin }]) de un mismo día.
+   * horariosPorDocente: Map(clave → [{ hora, inicio, fin }]) de un mismo día; la clave empieza por el id
+   * del docente ("docente" o "docente|materia|nivel").
    * conGoogle: Set de docentes que conectaron Google (los demás no se consultan).
    */
   async filtrar(horariosPorDocente, conGoogle) {
-    await Promise.all([...horariosPorDocente].map(async ([docenteId, horarios]) => {
-      if (!horarios.length || !conGoogle.has(docenteId)) return;
-      const desde = new Date(horarios[0].inicio);
-      const hasta = new Date(horarios[horarios.length - 1].fin || new Date(horarios[horarios.length - 1].inicio).getTime() + UNA_HORA);
+    // Se pregunta a Google una sola vez por docente, cubriendo todas sus materias de ese día
+    const porDocente = new Map();
+    for (const [clave, horarios] of horariosPorDocente) {
+      const docenteId = String(clave).split('|')[0];
+      if (!horarios.length || !conGoogle.has(docenteId)) continue;
+      if (!porDocente.has(docenteId)) porDocente.set(docenteId, []);
+      porDocente.get(docenteId).push(clave);
+    }
+    const finDe = (h) => new Date(h.fin || new Date(h.inicio).getTime() + UNA_HORA);
+    await Promise.all([...porDocente].map(async ([docenteId, claves]) => {
+      const todos = claves.flatMap((c) => horariosPorDocente.get(c));
+      const desde = new Date(Math.min(...todos.map((h) => new Date(h.inicio).getTime())));
+      const hasta = new Date(Math.max(...todos.map((h) => finDe(h).getTime())));
       const { intervalos } = await this.calendario.ocupado(docenteId, desde, hasta);
       if (!intervalos.length) return;
-      horariosPorDocente.set(docenteId, horarios.filter((h) => {
-        const inicio = new Date(h.inicio);
-        const fin = h.fin ? new Date(h.fin) : new Date(inicio.getTime() + UNA_HORA);
-        return !intervalos.some((o) => seCruzan({ inicio, fin }, o));
-      }));
+      for (const clave of claves) {
+        horariosPorDocente.set(clave, horariosPorDocente.get(clave).filter((h) => {
+          const inicio = new Date(h.inicio);
+          return !intervalos.some((o) => seCruzan({ inicio, fin: finDe(h) }, o));
+        }));
+      }
     }));
     return horariosPorDocente;
   }

@@ -484,3 +484,24 @@ button.chip { font: inherit; cursor: pointer; }
   .campos-b, #paso-3 .campos-b { grid-template-columns: 1fr; }
   .chip.dia span { min-width: 64px; }
 }
+
+/* Disponibilidad: un horario y una tarifa por cada materia (como pipelines) */
+.pipeline { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; align-items: end; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--linea); }
+.pipeline .campo { margin-bottom: 0; min-width: 0; }
+.pipeline select.entrada { font-weight: 700; border-color: var(--ambar); }
+.herramientas-cuadricula { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.entrada.chica { width: auto; padding: 6px 10px; font-size: 13px; border-radius: 16px; }
+.seccion-titulo { flex-wrap: wrap; gap: 8px; }
+.lista-pipelines { display: grid; gap: 8px; }
+.pipeline-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--superficie, #fff); cursor: pointer; font: inherit; color: inherit; }
+.pipeline-item:hover { border-color: var(--ambar); }
+.pipeline-item.activa { border-color: var(--ambar); background: var(--ambar-claro, #FDF3E3); }
+.pipeline-item .nombre { font-weight: 700; display: block; }
+.pipeline-item .detalle { font-size: 13px; color: var(--tinta-suave); }
+.pipeline-item .detalle.alerta { color: var(--coral); font-weight: 600; }
+.pipeline-item .texto { flex: 1; min-width: 0; }
+.pipeline-item .quitar { border: 0; background: none; color: var(--tinta-suave); cursor: pointer; padding: 4px; border-radius: 8px; display: grid; place-items: center; }
+.pipeline-item .quitar:hover { color: var(--coral); background: rgba(255,90,95,.08); }
+.pipeline-item .quitar .icono { width: 16px; height: 16px; }
+#sin-materias { margin-bottom: 18px; }
+@media (max-width: 860px) { .pipeline { grid-template-columns: 1fr; } }

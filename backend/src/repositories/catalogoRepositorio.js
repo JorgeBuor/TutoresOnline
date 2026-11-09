@@ -6,7 +6,8 @@ class CatalogoRepositorio extends RepositorioBase {
     return this.db.consultar(
       `select m.id, m.nombre, m.area,
               count(distinct dm.docente_id) filter (
-                where exists (select 1 from disponibilidad d where d.docente_id = dm.docente_id)
+                where exists (select 1 from disponibilidad d
+                               where d.docente_id = dm.docente_id and d.materia_id = dm.materia_id and d.nivel_id = dm.nivel_id)
               )::int as tutores
          from materias m
          left join docente_materias dm on dm.materia_id = m.id

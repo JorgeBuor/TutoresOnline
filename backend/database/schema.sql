@@ -108,15 +108,21 @@ create table docente_materias (
   primary key (docente_id, materia_id, nivel_id)
 );
 
--- Cuadrícula semanal de disponibilidad (pantalla "Disponibilidad").
+-- Cuadrícula semanal de disponibilidad (pantalla "Disponibilidad"): una por cada materia y nivel
+-- que enseña el docente, cada una con su propia tarifa (como pipelines separados).
+-- Si el docente quita la materia, su cuadrícula se borra sola.
 create table disponibilidad (
   id           bigserial primary key,
   docente_id   uuid     not null references docentes (id) on delete cascade,
+  materia_id   integer  not null,
+  nivel_id     smallint not null,
   dia_semana   smallint not null check (dia_semana between 0 and 6),   -- 0 = domingo
   hora_inicio  time     not null,
   hora_fin     time     not null,
   check (hora_fin > hora_inicio),
-  unique (docente_id, dia_semana, hora_inicio)
+  constraint disponibilidad_por_materia unique (docente_id, materia_id, nivel_id, dia_semana, hora_inicio),
+  constraint disponibilidad_materia_fk foreign key (docente_id, materia_id, nivel_id)
+    references docente_materias (docente_id, materia_id, nivel_id) on delete cascade
 );
 
 -- ---------------------------------------------------------------------
@@ -233,7 +239,7 @@ create table notificaciones (
 -- 9. Índices para las búsquedas más frecuentes
 -- ---------------------------------------------------------------------
 create index idx_docente_materias_materia on docente_materias (materia_id, nivel_id);
-create index idx_disponibilidad_docente   on disponibilidad (docente_id, dia_semana);
+create index idx_disponibilidad_docente   on disponibilidad (docente_id, materia_id, dia_semana);
 create index idx_tutorias_estudiante      on tutorias (estudiante_id, inicio);
 create index idx_tutorias_docente         on tutorias (docente_id, inicio);
 create index idx_solicitudes_abiertas     on solicitudes_tiempo_real (estado, creada_en) where estado = 'abierta';

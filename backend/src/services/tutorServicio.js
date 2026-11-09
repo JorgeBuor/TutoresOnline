@@ -17,15 +17,22 @@ class TutorServicio {
     this.zona = zonaHoraria;
   }
 
-  /** Horarios libres de cada docente en una fecha: plataforma (disponibilidad menos clases) y Google Calendar. */
-  async horariosDelDia(tutores, fecha, duracion = 60) {
-    const libres = await this.tutores.horariosLibres(tutores.map((t) => t.docente_id), fecha, this.zona, duracion);
-    const porDocente = new Map(tutores.map((t) => [t.docente_id, []]));
-    for (const h of libres) porDocente.get(h.docente_id)?.push({ hora: h.hora, inicio: h.inicio, fin: h.fin });
-    if (this.ocupado) {
-      await this.ocupado.filtrar(porDocente, new Set(tutores.filter((t) => t.google_conectado).map((t) => t.docente_id)));
+  /**
+   * Horarios libres de una fecha por cada oferta (docente + materia + nivel), según la cuadrícula de esa
+   * materia, las clases ya tomadas y el Google Calendar del docente. Clave: "docente|materia|nivel".
+   */
+  async horariosDelDia(tutores, fecha, duracion = 60, filtro = {}) {
+    const libres = await this.tutores.horariosLibres(tutores.map((t) => t.docente_id), fecha, this.zona, duracion, filtro);
+    const porOferta = new Map();
+    for (const h of libres) {
+      const clave = `${h.docente_id}|${h.materia_id}|${h.nivel_id}`;
+      if (!porOferta.has(clave)) porOferta.set(clave, []);
+      porOferta.get(clave).push({ hora: h.hora, inicio: h.inicio, fin: h.fin });
     }
-    return porDocente;
+    if (this.ocupado) {
+      await this.ocupado.filtrar(porOferta, new Set(tutores.filter((t) => t.google_conectado).map((t) => t.docente_id)));
+    }
+    return porOferta;
   }
 
   async buscar(consulta) {
@@ -43,17 +50,24 @@ class TutorServicio {
     if (duracion % 30 !== 0) throw solicitudInvalida('La duración debe ser en bloques de 30 minutos');
 
     const tutores = await this.tutores.buscar(filtros);
-    const porDocente = await this.horariosDelDia(tutores, fecha, duracion);
-    const resultado = tutores
-      .map(({ google_conectado: _g, ...t }) => ({ ...t, horarios: porDocente.get(t.docente_id) || [] }))
-      .filter((t) => !soloConHorario || t.horarios.length > 0);
+    const filtroHorario = { materiaId: filtros.materiaId, nivelId: filtros.nivelId };
+
+    // Cada materia y nivel del docente es una oferta con su propia tarifa y sus propios horarios
+    const armar = (porOferta) => tutores.flatMap(({ google_conectado: _g, ...t }) => t.materias.map((m) => ({
+      ...t,
+      materias: [m],
+      horarios: porOferta.get(`${t.docente_id}|${m.materia_id}|${m.nivel_id}`) || [],
+    })));
+
+    const resultado = armar(await this.horariosDelDia(tutores, fecha, duracion, filtroHorario))
+      .filter((o) => !soloConHorario || o.horarios.length > 0);
 
     // Si ese día nadie tiene horarios, se busca el próximo día que sí tenga, para ofrecerlo al estudiante
     let proximaFecha = null;
-    if (consulta.proximo === 'true' && tutores.length && !resultado.some((t) => t.horarios.length)) {
+    if (consulta.proximo === 'true' && tutores.length && !resultado.some((o) => o.horarios.length)) {
       for (let n = 1; n <= DIAS_A_REVISAR && !proximaFecha; n += 1) {
         const dia = sumarDias(fecha, n);
-        const horarios = await this.horariosDelDia(tutores, dia, duracion);
+        const horarios = await this.horariosDelDia(tutores, dia, duracion, filtroHorario);
         if ([...horarios.values()].some((h) => h.length)) proximaFecha = dia;
       }
     }
@@ -65,12 +79,18 @@ class TutorServicio {
     const fecha = validar.fecha(consulta.fecha, 'fecha', { requerido: false }) || hoyEnZona(this.zona);
     const tutor = await this.tutores.obtener(id);
     if (!tutor) throw noEncontrado('El tutor no existe');
-    const [resenas, horarios] = await Promise.all([
+    const [resenas, porOferta] = await Promise.all([
       this.tutores.resenas(id),
       this.horariosDelDia([tutor], fecha),
     ]);
     const { google_conectado: _g, ...publico } = tutor;
-    return { ...publico, fecha, resenas, horarios: horarios.get(id) || [] };
+    const materias = publico.materias.map((m) => ({ ...m, horarios: porOferta.get(`${id}|${m.materia_id}|${m.nivel_id}`) || [] }));
+    // Todos los horarios del día, sin repetir, para quien no filtra por materia
+    const vistos = new Set();
+    const horarios = materias.flatMap((m) => m.horarios)
+      .filter((h) => !vistos.has(h.hora) && vistos.add(h.hora))
+      .sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
+    return { ...publico, materias, horarios, fecha, resenas };
   }
 }
 
