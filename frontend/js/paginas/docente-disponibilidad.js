@@ -46,9 +46,11 @@ function pintarMaterias() {
     : '<span class="ayuda">Agrega al menos una materia para aparecer en las búsquedas</span>';
 }
 
-function pintarGoogle(conectado) {
-  if (conectado) {
-    estadoGoogle.innerHTML = `<span class="ok">${ICONOS.check} Google Calendar conectado</span>`;
+function pintarGoogle(conectado, permiso) {
+  if (conectado && permiso === 'sin_permiso') {
+    estadoGoogle.innerHTML = '<button type="button" class="google-desconectado" id="conectar-google">Actualizar permiso de Google</button>';
+  } else if (conectado) {
+    estadoGoogle.innerHTML = `<span class="ok" title="Tus eventos de Google Calendar bloquean esos horarios automáticamente">${ICONOS.check} Google Calendar conectado</span>`;
   } else if (publica.googleCalendar) {
     estadoGoogle.innerHTML = '<button type="button" class="google-desconectado" id="conectar-google">Conectar Google Calendar</button>';
   } else {
@@ -70,7 +72,10 @@ const actualizarZona = () => { campoZona.hidden = !document.getElementById('mod-
 document.getElementById('mod-presencial').addEventListener('change', actualizarZona);
 actualizarZona();
 pintarMaterias();
-pintarGoogle(yo.google_conectado);
+pintarGoogle(yo.google_conectado, config.google);
+if (yo.google_conectado && config.google === 'sin_permiso') {
+  aviso('Actualiza el permiso de Google para que tus eventos del calendario bloqueen horarios automáticamente.');
+}
 
 // Materias: agregar (de la lista o una nueva) y quitar
 const selMateria = document.getElementById('am-m');

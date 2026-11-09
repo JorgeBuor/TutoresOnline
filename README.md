@@ -84,7 +84,8 @@ Los errores siempre responden con el mismo formato: `{ "error": { "codigo": "...
 ## Reglas de negocio implementadas
 
 * **Registro con rol:** al registrarse se elige estudiante o docente; quien entra con Google lo elige una sola vez.
-* **Búsqueda:** por materia, nivel educativo, modalidad, ciudad (área geográfica) y disponibilidad en una fecha.
+* **Búsqueda en pasos:** el estudiante elige materia y nivel, luego el día y, si quiere, la modalidad y la ciudad; solo aparecen los tutores con horarios libres ese día. Si nadie tiene, se sugiere el próximo día disponible (hasta dos semanas).
+* **Disponibilidad:** la cuadrícula semanal del docente se repite todas las semanas; si conectó Google Calendar, sus otros compromisos esconden esos horarios y no se pueden reservar (la app solo ve "ocupado", nunca el detalle de los eventos).
 * **Catálogo abierto:** si un docente no encuentra su materia, la crea con su área desde la aplicación; la base reconoce la misma materia aunque se escriba con o sin tildes o mayúsculas.
 * **Materias sin tutores:** el estudiante ve cuántos tutores tiene cada materia; si no hay ninguno, puede pedir que le avisen por correo, incluso escribiendo una materia que aún no existe. El aviso se envía una sola vez, cuando un docente publica esa materia con horarios.
 * **Reserva:** solo dentro de la disponibilidad semanal del docente, en el futuro y sin cruzarse con otra clase.

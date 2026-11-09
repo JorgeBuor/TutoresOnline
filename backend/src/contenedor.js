@@ -18,6 +18,7 @@ const { IntegracionRepositorio } = require('./repositories/integracionRepositori
 
 const { CorreoResend, CorreoDesactivado } = require('./integraciones/correo');
 const { CalendarioGoogle, CalendarioDesactivado } = require('./integraciones/calendario');
+const { OcupadoServicio } = require('./services/ocupadoServicio');
 
 const { CatalogoServicio } = require('./services/catalogoServicio');
 const { PerfilServicio } = require('./services/perfilServicio');
@@ -59,7 +60,8 @@ function crearContenedor(entorno = leerEntorno(), sobrescribir = {}) {
   const notificaciones = new NotificacionServicio({
     integracionRepositorio: repos.integracionRepositorio, correo, urlAplicacion: entorno.urlAplicacion, zonaHoraria,
   });
-  const tutorias = new TutoriaServicio({ ...repos, notificaciones, calendario, zonaHoraria });
+  const ocupado = new OcupadoServicio({ calendario });
+  const tutorias = new TutoriaServicio({ ...repos, notificaciones, calendario, ocupado, zonaHoraria });
 
   const servicios = {
     configuracionPublica: {
@@ -69,8 +71,8 @@ function crearContenedor(entorno = leerEntorno(), sobrescribir = {}) {
     },
     catalogo: new CatalogoServicio({ db, ...repos }),
     perfil: new PerfilServicio({ db, ...repos }),
-    docente: new DocenteServicio({ db, ...repos, notificaciones }),
-    tutores: new TutorServicio({ ...repos, zonaHoraria }),
+    docente: new DocenteServicio({ db, ...repos, notificaciones, ocupado }),
+    tutores: new TutorServicio({ ...repos, ocupado, zonaHoraria }),
     tutorias,
     chat: new ChatServicio(repos),
     tiempoReal: new TiempoRealServicio({ db, ...repos, tutoriaServicio: tutorias, notificaciones }),

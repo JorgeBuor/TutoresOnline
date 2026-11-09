@@ -460,3 +460,27 @@ button.chip { font: inherit; cursor: pointer; }
 .vacio .ok-aviso { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--turquesa-osc); font-weight: 600; }
 .vacio .ok-aviso .icono { width: 18px; height: 18px; }
 .enlace-otra { background: none; border: 0; padding: 0; color: var(--turquesa-osc); font-weight: 600; cursor: pointer; font: inherit; text-decoration: underline; }
+
+/* Agendar: búsqueda en pasos (qué, cuándo, cómo) y luego los tutores */
+.buscador { display: grid; gap: 22px; padding: 24px; }
+.paso-b { border: 0; margin: 0; padding: 0; min-width: 0; transition: opacity .2s; }
+.paso-b:disabled { opacity: .45; }
+.paso-b legend { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; margin-bottom: 12px; padding: 0; }
+.paso-b legend small { font-weight: 500; color: var(--tinta-suave); font-size: 13px; }
+.num-paso { width: 26px; height: 26px; border-radius: 50%; background: var(--acento); color: var(--acento-texto); display: inline-grid; place-items: center; font-size: 13px; font-weight: 800; flex: none; }
+.paso-b:disabled .num-paso { background: var(--linea); color: var(--tinta-suave); }
+.campos-b { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; align-items: end; }
+.campos-b .campo { margin-bottom: 0; min-width: 0; }
+#paso-3 .campos-b { grid-template-columns: auto minmax(0, 260px); }
+.chip.dia span { min-width: 76px; text-align: center; }
+.chip.dia small { display: block; font-size: 11px; font-weight: 500; opacity: .8; }
+.fecha-otra { width: auto; margin-top: 10px; }
+.resultados-b { margin-top: 26px; }
+.resultados-b h2 { font-size: 20px; }
+.resultados-b h2 small { display: block; font-family: var(--texto); letter-spacing: 0; font-size: 14px; font-weight: 500; color: var(--tinta-suave); margin-top: 4px; }
+.tutor .modo-reserva { display: block; margin: 12px 0 8px; }
+@media (max-width: 860px) {
+  .buscador { padding: 18px; }
+  .campos-b, #paso-3 .campos-b { grid-template-columns: 1fr; }
+  .chip.dia span { min-width: 64px; }
+}

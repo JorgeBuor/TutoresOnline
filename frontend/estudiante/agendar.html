@@ -26,20 +26,40 @@
 <nav class="barra-inferior" aria-label="Menú móvil"><a href="../estudiante/inicio.html"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>Inicio</a><a href="../estudiante/agendar.html" class="activo" aria-current="page"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agendar</a><a href="../estudiante/tiempo-real.html"><span class="punto" data-punto-vivo hidden></span><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>En vivo</a><a href="../compartidas/chat.html?rol=estudiante"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>Chat</a><a href="../compartidas/clases-virtuales.html?rol=estudiante"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4V8Z"/></svg>Virtuales</a></nav>
 
 <main class="pagina">
-  <div class="encabezado con-accion">
-    <div><h1>Agendar clase</h1><p>Encuentra al tutor ideal para ti y aprende a tu propio ritmo.</p></div>
+  <div class="encabezado">
+    <div><h1>Agendar clase</h1><p>Cuéntanos qué necesitas y qué día; te mostramos los tutores que pueden darte la clase.</p></div>
   </div>
-  <form class="filtros" id="filtros" aria-label="Filtros de búsqueda">
-    <select class="entrada" id="f-materia" aria-label="Materia"><option value="">Todas las materias</option></select>
-    <select class="entrada" id="f-nivel" aria-label="Nivel educativo"><option value="">Todos los niveles</option></select>
-    <label class="chip"><input type="radio" name="modalidad" value="virtual" checked><span>Virtual</span></label>
-    <label class="chip"><input type="radio" name="modalidad" value="presencial"><span>Presencial</span></label>
-    <select class="entrada" id="f-ciudad" aria-label="Ciudad"><option value="">Cualquier ciudad</option></select>
-    <input class="entrada" type="date" id="f-fecha" aria-label="Fecha">
+  <form class="tarjeta buscador" id="filtros" aria-label="Buscar tutor">
+    <fieldset class="paso-b" id="paso-1">
+      <legend><span class="num-paso">1</span>¿Qué necesitas aprender?</legend>
+      <div class="campos-b">
+        <div class="campo"><label for="f-materia">Materia</label>
+          <select class="entrada" id="f-materia" required><option value="">Elige una materia</option></select></div>
+        <div class="campo"><label for="f-nivel">Nivel</label>
+          <select class="entrada" id="f-nivel"><option value="">Cualquier nivel</option></select></div>
+      </div>
+    </fieldset>
+    <fieldset class="paso-b" id="paso-2" disabled>
+      <legend><span class="num-paso">2</span>¿Qué día?</legend>
+      <div class="chips" id="dias"></div>
+      <input class="entrada fecha-otra" type="date" id="f-fecha" aria-label="Otra fecha" hidden>
+    </fieldset>
+    <fieldset class="paso-b" id="paso-3" disabled>
+      <legend><span class="num-paso">3</span>¿Cómo prefieres la clase? <small>opcional</small></legend>
+      <div class="campos-b">
+        <div class="chips" role="radiogroup" aria-label="Modalidad">
+          <label class="chip"><input type="radio" name="modalidad" value="" checked><span>Me da igual</span></label>
+          <label class="chip"><input type="radio" name="modalidad" value="virtual"><span>Virtual</span></label>
+          <label class="chip"><input type="radio" name="modalidad" value="presencial"><span>Presencial</span></label>
+        </div>
+        <div class="campo" id="campo-ciudad" hidden><label for="f-ciudad">Ciudad</label>
+          <select class="entrada" id="f-ciudad"><option value="">Cualquier ciudad</option></select></div>
+      </div>
+    </fieldset>
   </form>
-  <p class="ayuda" id="resumen-busqueda" style="margin-top:14px"></p>
-  <section class="seccion" style="margin-top:14px">
-    <div class="rejilla rejilla-3" id="lista-tutores"><div class="cargando" aria-label="Cargando"><span></span><span></span><span></span></div></div>
+  <section class="seccion resultados-b" id="resultados" hidden>
+    <div class="seccion-titulo"><h2 id="titulo-resultados"></h2></div>
+    <div class="rejilla rejilla-3" id="lista-tutores"></div>
   </section>
 </main>
 

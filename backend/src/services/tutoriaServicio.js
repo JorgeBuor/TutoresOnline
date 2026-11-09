@@ -14,7 +14,8 @@ const TRANSICIONES = {
 };
 
 class TutoriaServicio {
-  constructor({ tutoriaRepositorio, tutorRepositorio, docenteRepositorio, notificaciones, calendario, zonaHoraria }) {
+  constructor({ tutoriaRepositorio, tutorRepositorio, docenteRepositorio, notificaciones, calendario, ocupado, zonaHoraria }) {
+    this.ocupado = ocupado;
     this.tutorias = tutoriaRepositorio;
     this.tutores = tutorRepositorio;
     this.docentes = docenteRepositorio;
@@ -48,6 +49,9 @@ class TutoriaServicio {
     const fin = sumarMinutos(inicio, duracion);
     const disponible = await this.tutores.dentroDeDisponibilidad(docenteId, inicio, fin, this.zona);
     if (!disponible) throw conflicto('Ese horario no está dentro de la disponibilidad del docente');
+    if (this.ocupado && docente.google_conectado && !(await this.ocupado.estaLibre(docenteId, inicio, fin))) {
+      throw conflicto('El docente tiene otro compromiso en ese horario. Elige otra hora.');
+    }
 
     const tutoria = await this.tutorias.crear({
       estudianteId: usuario.id,

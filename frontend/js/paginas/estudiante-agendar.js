@@ -1,99 +1,183 @@
 import { iniciarPagina, api, avatar, escapar, dinero, estrellas, ICONOS, vacio, conBoton, crearVentana, fechaClave, aviso } from '../app.js';
 
 await iniciarPagina();
+
+/*
+ * Agendar en pasos: 1) materia y nivel, 2) día, 3) modalidad (opcional).
+ * Apenas hay materia y día, aparecen solo los tutores que tienen horarios libres ese día.
+ */
 const filtros = document.getElementById('filtros');
+const selMateria = document.getElementById('f-materia');
+const selNivel = document.getElementById('f-nivel');
+const selCiudad = document.getElementById('f-ciudad');
+const campoFecha = document.getElementById('f-fecha');
+const contDias = document.getElementById('dias');
+const paso2 = document.getElementById('paso-2');
+const paso3 = document.getElementById('paso-3');
+const resultados = document.getElementById('resultados');
+const titulo = document.getElementById('titulo-resultados');
 const lista = document.getElementById('lista-tutores');
-const resumen = document.getElementById('resumen-busqueda');
-const fecha = document.getElementById('f-fecha');
 
 const [catalogos, avisosIniciales] = await Promise.all([api('/catalogos'), api('/avisos-materia').catch(() => [])]);
-const opciones = (items, valor, texto) => items.map((i) => `<option value="${escapar(i[valor] ?? i)}">${escapar(i[texto] ?? i)}</option>`).join('');
-const selMateria = document.getElementById('f-materia');
 const materiaPorId = new Map(catalogos.materias.map((m) => [m.id, m]));
 const conAviso = new Set(avisosIniciales.filter((a) => a.materia_id).map((a) => a.materia_id));
 
-// Materias agrupadas por área, con cuántos tutores tiene cada una
+/* ---------- Fechas ---------- */
+const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+const hoy = fechaClave();
+const sumarDias = (clave, n) => {
+  const d = new Date(`${clave}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+const diaSemana = (clave) => new Date(`${clave}T12:00:00Z`).getUTCDay();
+const fechaLarga = (clave) => new Intl.DateTimeFormat('es-CO', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' })
+  .format(new Date(`${clave}T12:00:00Z`));
+
+/* ---------- Paso 1: materias agrupadas por área, con cuántos tutores tiene cada una ---------- */
 const grupos = new Map();
 for (const m of catalogos.materias) {
   if (!grupos.has(m.area)) grupos.set(m.area, []);
   grupos.get(m.area).push(m);
 }
-selMateria.insertAdjacentHTML('beforeend', [...grupos].map(([area, lista]) => `<optgroup label="${escapar(area)}">${
-  lista.map((m) => `<option value="${m.id}">${escapar(m.nombre)} ${m.tutores ? `(${m.tutores})` : '· sin tutores aún'}</option>`).join('')}</optgroup>`).join('')
-  + '<option value="otra">No encuentro mi materia…</option>');
-document.getElementById('f-nivel').insertAdjacentHTML('beforeend', opciones(catalogos.niveles, 'id', 'nombre'));
-document.getElementById('f-ciudad').insertAdjacentHTML('beforeend', catalogos.ciudades.map((c) => `<option>${escapar(c)}</option>`).join(''));
-fecha.value = fechaClave();
-fecha.min = fechaClave();
+selMateria.insertAdjacentHTML('beforeend', [...grupos].map(([area, materias]) => `<optgroup label="${escapar(area)}">${
+  materias.map((m) => `<option value="${m.id}">${escapar(m.nombre)} ${m.tutores ? `(${m.tutores} ${m.tutores === 1 ? 'tutor' : 'tutores'})` : '· sin tutores aún'}</option>`).join('')
+}</optgroup>`).join('') + '<option value="otra">No encuentro mi materia…</option>');
+selNivel.insertAdjacentHTML('beforeend', catalogos.niveles.map((n) => `<option value="${n.id}">${escapar(n.nombre)}</option>`).join(''));
+selCiudad.insertAdjacentHTML('beforeend', catalogos.ciudades.map((c) => `<option>${escapar(c)}</option>`).join(''));
 
-let ultimaBusqueda = [];
-
-function consulta() {
-  const p = new URLSearchParams({ fecha: fecha.value || fechaClave() });
-  const materia = document.getElementById('f-materia').value;
-  const nivel = document.getElementById('f-nivel').value;
-  const ciudad = document.getElementById('f-ciudad').value;
-  const modalidad = filtros.querySelector('input[name=modalidad]:checked')?.value;
-  if (materia) p.set('materia_id', materia);
-  if (nivel) p.set('nivel_id', nivel);
-  if (ciudad) p.set('ciudad', ciudad);
-  if (modalidad) p.set('modalidad', modalidad);
-  return p;
+/* ---------- Paso 2: los próximos 7 días y "Otra fecha" ---------- */
+function etiquetaDia(clave, n) {
+  if (n === 0) return 'Hoy';
+  if (n === 1) return 'Mañana';
+  const dia = DIAS[diaSemana(clave)];
+  return dia.charAt(0).toUpperCase() + dia.slice(1);
 }
+contDias.innerHTML = Array.from({ length: 7 }, (_, n) => {
+  const clave = sumarDias(hoy, n);
+  return `<label class="chip dia"><input type="radio" name="dia" value="${clave}"><span>${etiquetaDia(clave, n)}<small>${Number(clave.slice(8))} ${new Intl.DateTimeFormat('es-CO', { timeZone: 'UTC', month: 'short' }).format(new Date(`${clave}T12:00:00Z`)).replace('.', '')}</small></span></label>`;
+}).join('') + '<label class="chip dia"><input type="radio" name="dia" value="otra"><span>Otra fecha<small id="otra-texto-dia">elegir</small></span></label>';
+campoFecha.min = hoy;
+
+function fechaElegida() {
+  const marcado = filtros.querySelector('input[name=dia]:checked');
+  if (!marcado) return null;
+  if (marcado.value === 'otra') return campoFecha.value || null;
+  return marcado.value;
+}
+
+/** Selecciona una fecha cualquiera (desde "Otra fecha" o desde la sugerencia del próximo día). */
+function elegirFecha(clave) {
+  const chip = filtros.querySelector(`input[name=dia][value="${clave}"]`);
+  if (chip) {
+    chip.checked = true;
+    campoFecha.hidden = true;
+  } else {
+    filtros.querySelector('input[name=dia][value=otra]').checked = true;
+    campoFecha.hidden = false;
+    campoFecha.value = clave;
+    document.getElementById('otra-texto-dia').textContent = `${DIAS[diaSemana(clave)]} ${Number(clave.slice(8))}`;
+  }
+}
+
+const modalidadElegida = () => filtros.querySelector('input[name=modalidad]:checked')?.value || '';
+
+/* ---------- Pasos habilitados según lo que falta ---------- */
+function actualizarPasos() {
+  const materia = materiaPorId.get(Number(selMateria.value));
+  paso2.disabled = !materia || !materia.tutores;
+  paso3.disabled = paso2.disabled || !fechaElegida();
+  document.getElementById('campo-ciudad').hidden = modalidadElegida() !== 'presencial';
+}
+
+/* ---------- Resultados ---------- */
+let ultimaBusqueda = [];
+let busquedaActual = 0;
 
 function tarjeta(t, i) {
   const materia = t.materias[0];
+  const niveles = t.materias.map((m) => m.nivel).filter((v, k, a) => a.indexOf(v) === k).join(', ');
   const modos = [t.ofrece_virtual && 'virtual', t.ofrece_presencial && 'presencial'].filter(Boolean).join(' y ');
-  const horarios = t.horarios.length
-    ? t.horarios.map((h, j) => `<label class="chip horario"><input type="radio" name="h${i}" value="${h.inicio}"${j === 0 ? ' checked' : ''}><span>${h.hora}</span></label>`).join('')
-    : '<span class="ayuda">Sin horarios libres este día</span>';
+  const horarios = t.horarios.map((h, j) => `<label class="chip horario"><input type="radio" name="h${i}" value="${h.inicio}"${j === 0 ? ' checked' : ''}><span>${h.hora}</span></label>`).join('');
+  // Si el estudiante dijo "Me da igual" y el tutor ofrece las dos, elige aquí
+  const eligeModo = !modalidadElegida() && t.ofrece_virtual && t.ofrece_presencial
+    ? `<span class="etiqueta-seccion modo-reserva">Modalidad</span><div class="chips">
+         <label class="chip horario"><input type="radio" name="m${i}" value="virtual" checked><span>Virtual</span></label>
+         <label class="chip horario"><input type="radio" name="m${i}" value="presencial"><span>Presencial</span></label></div>`
+    : '';
   return `
     <article class="tarjeta tutor">
       <div class="cabeza">${avatar(t.nombre_completo, t.docente_id)}
         <div class="info"><div class="titulo-persona">${escapar(t.nombre_completo)}</div>
-          <div class="subtexto">${t.materias.map((m) => escapar(m.materia)).filter((v, k, a) => a.indexOf(v) === k).join(' · ')}</div>
+          <div class="subtexto">${escapar(materia.materia)} · ${escapar(niveles)}</div>
           <div class="ubicacion">${ICONOS.ubicacion}${escapar(t.ciudad || 'Sin ciudad')} · ${modos}</div></div>
         ${estrellas(t.calificacion_promedio, t.total_resenas)}
       </div>
-      <div class="horarios"><span class="etiqueta-seccion">Horarios disponibles</span><div class="chips">${horarios}</div></div>
+      <div class="horarios"><span class="etiqueta-seccion">Horarios libres</span><div class="chips">${horarios}</div>${eligeModo}</div>
       <div class="pie"><div class="precio">${dinero(materia.tarifa_hora)} <small>/ hora</small></div>
-        <button class="btn" data-reservar="${i}"${t.horarios.length ? '' : ' disabled'}>Reservar</button></div>
+        <button class="btn" type="button" data-reservar="${i}">Reservar</button></div>
     </article>`;
-}
-
-async function buscar() {
-  lista.innerHTML = '<div class="cargando"><span></span><span></span><span></span></div>';
-  try {
-    const { tutores } = await api(`/tutores?${consulta()}`);
-    ultimaBusqueda = tutores;
-    const conHorario = tutores.filter((t) => t.horarios.length).length;
-    resumen.textContent = tutores.length ? `${tutores.length} tutores encontrados, ${conHorario} con horarios libres ese día` : '';
-    lista.innerHTML = tutores.length ? tutores.map(tarjeta).join('') : sinResultados();
-  } catch (error) {
-    lista.innerHTML = vacio(escapar(error.message));
-  }
 }
 
 const botonAvisame = (id) => (conAviso.has(id)
   ? `<span class="ok-aviso">${ICONOS.check} Te avisaremos por correo</span>`
   : `<button class="btn" type="button" data-avisame="${id}">Avísame cuando haya uno</button>`);
 
-/** Mensaje cuando la búsqueda no trae tutores: distingue "no hay de esa materia" de "no coinciden los filtros". */
-function sinResultados() {
-  const materia = materiaPorId.get(Number(selMateria.value));
-  if (materia && !materia.tutores) {
-    return vacio(`<span class="titulo-vacio">Aún no tenemos tutores de ${escapar(materia.nombre)}</span>
-      Si quieres, te enviamos un correo apenas un docente la agregue.`, botonAvisame(materia.id));
-  }
-  if (materia) {
-    return vacio(`<span class="titulo-vacio">Ningún tutor coincide con estos filtros</span>
-      Hay ${materia.tutores} ${materia.tutores === 1 ? 'tutor' : 'tutores'} de ${escapar(materia.nombre)}. Prueba otra ciudad, modalidad o nivel.`);
-  }
-  return vacio(`<span class="titulo-vacio">No encontramos tutores con esos filtros</span>
-    Prueba otra materia, ciudad o modalidad. ¿No está tu materia? <button type="button" class="enlace-otra" data-otra>Escríbela aquí</button>`);
+function mostrar(tituloHtml, contenido) {
+  resultados.hidden = false;
+  titulo.innerHTML = tituloHtml;
+  lista.innerHTML = contenido;
 }
 
-/** El estudiante escribe una materia que no está en la lista y pide que le avisen. */
+async function buscar() {
+  actualizarPasos();
+  const materia = materiaPorId.get(Number(selMateria.value));
+  if (!materia) {
+    resultados.hidden = true;
+    return;
+  }
+  if (!materia.tutores) {
+    mostrar('', vacio(`<span class="titulo-vacio">Aún no tenemos tutores de ${escapar(materia.nombre)}</span>
+      Si quieres, te enviamos un correo apenas un docente la agregue.`, botonAvisame(materia.id)));
+    return;
+  }
+  const fecha = fechaElegida();
+  if (!fecha) {
+    resultados.hidden = true;
+    return;
+  }
+
+  const p = new URLSearchParams({ materia_id: materia.id, fecha, solo_disponibles: 'true', proximo: 'true' });
+  if (selNivel.value) p.set('nivel_id', selNivel.value);
+  if (modalidadElegida()) p.set('modalidad', modalidadElegida());
+  if (modalidadElegida() === 'presencial' && selCiudad.value) p.set('ciudad', selCiudad.value);
+
+  const numero = ++busquedaActual;
+  mostrar('Buscando tutores…', '<div class="cargando" aria-label="Cargando"><span></span><span></span><span></span></div>');
+  try {
+    const r = await api(`/tutores?${p}`);
+    if (numero !== busquedaActual) return; // llegó una búsqueda más nueva
+    ultimaBusqueda = r.tutores;
+    const cuando = fechaLarga(fecha);
+    if (r.tutores.length) {
+      mostrar(`${r.tutores.length} ${r.tutores.length === 1 ? 'tutor disponible' : 'tutores disponibles'}<small>${escapar(materia.nombre)} · ${cuando}</small>`,
+        r.tutores.map(tarjeta).join(''));
+    } else if (!r.total_materia) {
+      mostrar('', vacio(`<span class="titulo-vacio">Ningún tutor de ${escapar(materia.nombre)} coincide con ese nivel o modalidad</span>
+        Prueba con <b>Cualquier nivel</b> o con <b>Me da igual</b> en la modalidad.`));
+    } else {
+      const sugerencia = r.proxima_fecha
+        ? `<button class="btn" type="button" data-ir-fecha="${r.proxima_fecha}">Ver el ${fechaLarga(r.proxima_fecha)}</button>`
+        : '';
+      mostrar('', vacio(`<span class="titulo-vacio">Nadie tiene horarios libres el ${cuando}</span>
+        ${r.proxima_fecha ? 'El próximo día con tutores disponibles es este:' : 'En las próximas dos semanas tampoco hay horarios libres. Prueba otro nivel o modalidad.'}`, sugerencia));
+    }
+  } catch (error) {
+    if (numero === busquedaActual) mostrar('', vacio(escapar(error.message)));
+  }
+}
+
+/* ---------- Materia que no está en la lista ---------- */
 function ventanaOtraMateria() {
   const ventana = crearVentana(`
     <form class="tarjeta izq" id="form-otra">
@@ -118,6 +202,7 @@ function ventanaOtraMateria() {
   });
 }
 
+/* ---------- Eventos ---------- */
 selMateria.addEventListener('change', (ev) => {
   if (selMateria.value !== 'otra') return;
   ev.stopImmediatePropagation();
@@ -125,11 +210,26 @@ selMateria.addEventListener('change', (ev) => {
   ventanaOtraMateria();
   buscar();
 });
-filtros.addEventListener('change', buscar);
+filtros.addEventListener('change', (ev) => {
+  if (ev.target.name === 'dia') {
+    campoFecha.hidden = ev.target.value !== 'otra';
+    if (ev.target.value === 'otra') {
+      try { campoFecha.showPicker(); } catch { campoFecha.focus(); }
+      if (!campoFecha.value) { actualizarPasos(); return; }
+    }
+  }
+  if (ev.target === campoFecha && campoFecha.value) elegirFecha(campoFecha.value);
+  buscar();
+});
 filtros.addEventListener('submit', (ev) => { ev.preventDefault(); buscar(); });
 
 lista.addEventListener('click', (ev) => {
-  if (ev.target.closest('[data-otra]')) { ventanaOtraMateria(); return; }
+  const irFecha = ev.target.closest('[data-ir-fecha]');
+  if (irFecha) {
+    elegirFecha(irFecha.dataset.irFecha);
+    buscar();
+    return;
+  }
   const avisame = ev.target.closest('[data-avisame]');
   if (avisame) {
     conBoton(avisame, async () => {
@@ -146,9 +246,9 @@ lista.addEventListener('click', (ev) => {
   const i = Number(boton.dataset.reservar);
   const tutor = ultimaBusqueda[i];
   const inicio = lista.querySelector(`input[name="h${i}"]:checked`)?.value;
-  const materiaFiltro = Number(document.getElementById('f-materia').value);
-  const materia = tutor.materias.find((m) => m.materia_id === materiaFiltro) || tutor.materias[0];
-  const modalidad = filtros.querySelector('input[name=modalidad]:checked')?.value
+  const materia = tutor.materias[0];
+  const modalidad = modalidadElegida()
+    || lista.querySelector(`input[name="m${i}"]:checked`)?.value
     || (tutor.ofrece_virtual ? 'virtual' : 'presencial');
 
   conBoton(boton, async () => {
@@ -167,4 +267,8 @@ lista.addEventListener('click', (ev) => {
   });
 });
 
+// Se puede llegar con la materia ya elegida: /estudiante/agendar.html?materia=3
+const desdeEnlace = new URLSearchParams(location.search).get('materia');
+if (desdeEnlace && materiaPorId.has(Number(desdeEnlace))) selMateria.value = desdeEnlace;
+actualizarPasos();
 buscar();

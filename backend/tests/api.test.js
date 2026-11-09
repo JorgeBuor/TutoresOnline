@@ -25,6 +25,13 @@ const calendario = {
   async cancelarEvento(organizadorId, eventId) {
     this.cancelados.push(eventId);
   },
+  // Simula el "ocupado" de Google Calendar: docente → [{ inicio, fin }]
+  ocupadoDe: new Map(),
+  async ocupado(docenteId, desde, hasta) {
+    if (!this.ocupadoDe.has(docenteId)) return { estado: 'sin_conexion', intervalos: [] };
+    const intervalos = this.ocupadoDe.get(docenteId).filter((o) => o.inicio < new Date(hasta) && new Date(desde) < o.fin);
+    return { estado: 'ok', intervalos };
+  },
 };
 
 let servidor;
@@ -390,4 +397,62 @@ test('catálogo abierto: el docente crea materias y se avisa a los estudiantes q
   const final = await catalogo();
   assert.equal(final.materias.find((m) => m.id === quimica.id).tutores, 1);
   assert.equal(final.materias.find((m) => m.id === creada.datos.materia.id).tutores, 1);
+});
+
+test('los compromisos del Google Calendar del docente esconden esos horarios y no se pueden reservar', async () => {
+  const pedro = await crearUsuario('Pedro Ruiz', 'docente');
+  await api('PUT', '/yo/google', { token: pedro.token, cuerpo: { refresh_token: 'token-de-google' } });
+  const catalogos = (await api('GET', '/catalogos')).datos;
+  const universitario = catalogos.niveles.find((n) => n.nombre === 'Universitario').id;
+  const ingles = catalogos.materias.find((m) => m.nombre === 'Inglés').id;
+  const todaLaSemana = [0, 1, 2, 3, 4, 5, 6].map((dia) => ({ dia_semana: dia, hora_inicio: '06:00', hora_fin: '22:00' }));
+  await api('PUT', '/docente/configuracion', {
+    token: pedro.token,
+    cuerpo: { ofrece_virtual: true, materias: [{ materia_id: ingles, nivel_id: universitario, tarifa_hora: 30000 }], disponibilidad: todaLaSemana },
+  });
+
+  // Mañana tiene "Dentista" de 10:00 a 11:30 en su Google Calendar: se pierden los bloques de 10:00 y 11:00
+  calendario.ocupadoDe.set(pedro.id, [{ inicio: new Date(aLas('10:00')), fin: new Date(aLas('11:30')) }]);
+  const r = await api('GET', `/tutores?materia_id=${ingles}&fecha=${manana}`, { token: u.estudiante.token });
+  const horas = r.datos.tutores.find((t) => t.docente_id === pedro.id).horarios.map((h) => h.hora);
+  assert.equal(horas.length, 14);
+  assert.ok(!horas.includes('10:00') && !horas.includes('11:00') && horas.includes('12:00'));
+  assert.equal(r.datos.tutores[0].google_conectado, undefined, 'no se expone si el docente conectó Google');
+
+  const reservar = (hora) => api('POST', '/tutorias', {
+    token: u.estudiante.token,
+    cuerpo: { docente_id: pedro.id, materia_id: ingles, inicio: aLas(hora), modalidad: 'virtual' },
+  });
+  const choca = await reservar('10:00');
+  assert.equal(choca.status, 409);
+  assert.match(choca.datos.error.mensaje, /otro compromiso/);
+  assert.equal((await reservar('12:00')).status, 201);
+
+  // El docente ve si el permiso de Google está activo
+  assert.equal((await api('GET', '/docente/configuracion', { token: pedro.token })).datos.google, 'ok');
+  assert.equal((await api('GET', '/docente/configuracion', { token: u.docente.token })).datos.google, 'sin_conexion');
+});
+
+test('si ese día no hay horarios, la búsqueda sugiere el próximo día con tutores disponibles', async () => {
+  const lina = await crearUsuario('Lina Mora', 'docente');
+  const catalogos = (await api('GET', '/catalogos')).datos;
+  const lectura = catalogos.materias.find((m) => m.nombre === 'Lectura Crítica').id;
+  const universitario = catalogos.niveles.find((n) => n.nombre === 'Universitario').id;
+  const enTresDias = hoyEnZona(ZONA, new Date(Date.now() + 4 * 24 * 3600 * 1000));
+  const dia = new Date(`${enTresDias}T12:00:00Z`).getUTCDay();
+  await api('PUT', '/docente/configuracion', {
+    token: lina.token,
+    cuerpo: {
+      ofrece_virtual: true,
+      materias: [{ materia_id: lectura, nivel_id: universitario, tarifa_hora: 20000 }],
+      disponibilidad: [{ dia_semana: dia, hora_inicio: '14:00', hora_fin: '16:00' }],
+    },
+  });
+  const r = await api('GET', `/tutores?materia_id=${lectura}&fecha=${manana}&solo_disponibles=true&proximo=true`, { token: u.estudiante.token });
+  assert.equal(r.status, 200);
+  assert.equal(r.datos.tutores.length, 0);
+  assert.equal(r.datos.total_materia, 1);
+  assert.equal(r.datos.proxima_fecha, enTresDias);
+  const ese = await api('GET', `/tutores?materia_id=${lectura}&fecha=${enTresDias}&solo_disponibles=true`, { token: u.estudiante.token });
+  assert.deepEqual(ese.datos.tutores[0].horarios.map((h) => h.hora), ['14:00', '15:00']);
 });

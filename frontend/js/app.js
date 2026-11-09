@@ -11,7 +11,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const ZONA = 'America/Bogota';
 export const INICIO = { estudiante: '/estudiante/inicio.html', docente: '/docente/inicio.html' };
-export const ALCANCE_CALENDARIO = 'https://www.googleapis.com/auth/calendar.events';
+// Permisos de Google Calendar: crear las clases con Meet y ver cuándo el docente está ocupado (sin ver sus eventos)
+export const ALCANCE_CALENDARIO = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.freebusy';
 
 let supabase = null;
 let usuarioActual = null;

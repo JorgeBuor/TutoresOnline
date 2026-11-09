@@ -3,7 +3,7 @@ const { RepositorioBase } = require('./base');
 const CAMPOS_TUTOR = `
   d.id as docente_id, p.nombre_completo, p.foto_url, p.ciudad,
   d.ofrece_virtual, d.ofrece_presencial, d.zona_presencial,
-  d.calificacion_promedio, d.total_resenas`;
+  d.calificacion_promedio, d.total_resenas, d.google_conectado`;
 
 /** Consultas de lectura para buscar tutores y calcular sus horarios libres. */
 class TutorRepositorio extends RepositorioBase {

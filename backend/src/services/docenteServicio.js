@@ -8,7 +8,8 @@ const aMinutos = (hora) => {
 
 /** Pantalla "Disponibilidad": modalidades, materias con tarifa y cuadrícula semanal del docente. */
 class DocenteServicio {
-  constructor({ db, docenteRepositorio, catalogoRepositorio, notificaciones }) {
+  constructor({ db, docenteRepositorio, catalogoRepositorio, notificaciones, ocupado }) {
+    this.ocupado = ocupado;
     this.db = db;
     this.docentes = docenteRepositorio;
     this.catalogo = catalogoRepositorio;
@@ -21,7 +22,9 @@ class DocenteServicio {
       this.docentes.materias(usuario.id),
       this.docentes.disponibilidad(usuario.id),
     ]);
-    return { perfil, materias, disponibilidad };
+    // Si conectó Google, se comprueba que el permiso para ver su "ocupado" siga vigente
+    const google = perfil?.google_conectado && this.ocupado ? await this.ocupado.estado(usuario.id) : 'sin_conexion';
+    return { perfil, materias, disponibilidad, google };
   }
 
   async guardarConfiguracion(usuario, cuerpo) {
