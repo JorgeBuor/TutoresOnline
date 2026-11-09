@@ -1,0 +1,21 @@
+{
+  "name": "tutoresonline",
+  "version": "2.0.0",
+  "description": "TutoresOn-Line: plataforma de tutorías en línea y presenciales. Pantallas + API REST en Netlify, base de datos y login en Supabase.",
+  "main": "backend/src/app.js",
+  "scripts": {
+    "dev": "node backend/server.js",
+    "test": "node --test backend/tests/*.test.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^4.22.3",
+    "jose": "^5.10.0",
+    "pg": "^8.23.1",
+    "serverless-http": "^3.2.0"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}
