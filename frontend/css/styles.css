@@ -586,7 +586,7 @@ button.chip { font: inherit; cursor: pointer; }
 @media (max-width: 860px) { .cuadricula .celda { height: 28px; border-radius: 6px; } }
 
 /* Número de mensajes sin leer sobre "Chat" */
-.menu a[href*="chat.html"], .barra-inferior a[href*="chat.html"] { position: relative; }
+.menu a[href*="compartidas/chat"], .barra-inferior a[href*="compartidas/chat"] { position: relative; }
 .contador-chat { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
   background: var(--coral); color: #fff; font-size: 11px; font-weight: 800; line-height: 1; margin-left: 6px; vertical-align: 1px; }
 .barra-inferior .contador-chat { position: absolute; top: -4px; left: calc(50% + 4px); margin: 0; }
