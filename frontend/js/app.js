@@ -367,7 +367,7 @@ function sonarMensaje() {
 }
 
 export function pintarSinLeer(total) {
-  document.querySelectorAll('.menu a[href*="chat.html"], .barra-inferior a[href*="chat.html"], .acceso[href*="chat.html"]').forEach((enlace) => {
+  document.querySelectorAll('.menu a[href*="compartidas/chat"], .barra-inferior a[href*="compartidas/chat"], .acceso[href*="compartidas/chat"]').forEach((enlace) => {
     let globo = enlace.querySelector('.contador-chat');
     if (!total) { globo?.remove(); return; }
     if (!globo) {
