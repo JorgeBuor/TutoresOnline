@@ -109,16 +109,41 @@ function pintarActiva() {
     .map((x, i) => (i === activa || !x.bloques.size ? '' : `<option value="${i}">${escapar(nombreDe(x))}</option>`)).join('');
   selCopiar.hidden = selCopiar.options.length === 1;
   campoTarifa.value = m.tarifa;
-  for (const c of celdas) pintarCelda(c, m.bloques.get(claveBloque(c.dataset.dia, c.dataset.hora)));
+  // Horas que ya están marcadas en otras materias: se señalan para que el docente lo sepa
+  const enOtras = new Map();
+  materias.forEach((x, i) => {
+    if (i === activa) return;
+    for (const k of x.bloques.keys()) {
+      if (!enOtras.has(k)) enOtras.set(k, []);
+      enOtras.get(k).push(nombreMateria.get(x.materia_id));
+    }
+  });
+  for (const c of celdas) {
+    const k = claveBloque(c.dataset.dia, c.dataset.hora);
+    marcarOtras(c, enOtras.get(k) || []);
+    pintarCelda(c, m.bloques.get(k));
+  }
+  document.getElementById('leyenda-otras').hidden = !enOtras.size;
   pintarMaterias();
 }
 
 /** Una casilla: vacía, horas virtuales (ámbar) u horas solo presenciales (violeta). */
+/** Etiqueta pequeña en la casilla con las otras materias que usan esa hora (ej: "Fís" o "Fís+1"). */
+function marcarOtras(c, nombres) {
+  c.classList.toggle('en-otra', nombres.length > 0);
+  c.querySelector('.otra')?.remove();
+  if (!nombres.length) return;
+  const corto = nombres[0].normalize('NFC').slice(0, 3);
+  c.insertAdjacentHTML('beforeend', `<span class="otra" aria-hidden="true">${escapar(corto)}${nombres.length > 1 ? `+${nombres.length - 1}` : ''}</span>`);
+  c.dataset.otras = `También marcada en: ${nombres.join(', ')}`;
+}
+
 function pintarCelda(c, modo) {
   c.classList.toggle('marcada', Boolean(modo));
   c.classList.toggle('presencial', modo === 'presencial');
   c.setAttribute('aria-pressed', String(Boolean(modo)));
-  c.title = modo === 'presencial' ? 'Solo presencial' : modo ? 'Horas virtuales (también presencial)' : 'Libre';
+  c.title = (modo === 'presencial' ? 'Solo presencial' : modo ? 'Horas virtuales (también presencial)' : 'Libre')
+    + (c.classList.contains('en-otra') && c.dataset.otras ? `. ${c.dataset.otras}` : '');
 }
 
 const ofreceVirtual = () => document.getElementById('mod-virtual').checked;
