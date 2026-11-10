@@ -16,6 +16,9 @@ function crearConexion({ databaseUrl, dbSsl }) {
     max: 3, // en Netlify cada función abre pocas conexiones; Supabase usa su pooler
     ssl: dbSsl ? { rejectUnauthorized: false } : false,
   });
+  // Si Supabase cierra una conexión que estaba en reposo, se descarta sin tumbar la API;
+  // la siguiente consulta abre una nueva.
+  pool.on('error', (error) => console.error('Conexión a la base cerrada:', error.message));
 
   const ejecutor = (cliente) => ({
     async consultar(sql, parametros = []) {
