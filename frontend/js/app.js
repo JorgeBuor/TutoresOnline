@@ -95,6 +95,7 @@ export async function iniciarPagina() {
     pintarUsuario(usuario);
     activarVentanas();
     usuarioActual = usuario;
+    vigilarMensajes();
     return usuario;
   } catch (error) {
     aviso(error.message, 'error');
@@ -334,4 +335,67 @@ export function estrellas(promedio, total) {
 
 export function vacio(texto, boton = '') {
   return `<div class="vacio">${texto}${boton ? `<br>${boton}` : ''}</div>`;
+}
+
+/* ---------- Aviso de mensajes nuevos ----------
+ * Cada pocos segundos se cuentan los mensajes sin leer y se muestra el número en rojo
+ * sobre "Chat" (menú, barra del celular y tarjeta de acceso) y en el título de la pestaña.
+ * Si llega uno nuevo, suena un tono corto.
+ */
+let ultimoSinLeer = null;
+let audio = null;
+const tituloBase = document.title;
+
+function sonarMensaje() {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === 'suspended') audio.resume();
+    const ahora = audio.currentTime;
+    [[880, 0], [1320, 0.12]].forEach(([frecuencia, inicio]) => {
+      const tono = audio.createOscillator();
+      const volumen = audio.createGain();
+      tono.type = 'sine';
+      tono.frequency.value = frecuencia;
+      volumen.gain.setValueAtTime(0.0001, ahora + inicio);
+      volumen.gain.exponentialRampToValueAtTime(0.12, ahora + inicio + 0.02);
+      volumen.gain.exponentialRampToValueAtTime(0.0001, ahora + inicio + 0.25);
+      tono.connect(volumen).connect(audio.destination);
+      tono.start(ahora + inicio);
+      tono.stop(ahora + inicio + 0.3);
+    });
+  } catch { /* el navegador no permite sonido todavía */ }
+}
+
+export function pintarSinLeer(total) {
+  document.querySelectorAll('.menu a[href*="chat.html"], .barra-inferior a[href*="chat.html"], .acceso[href*="chat.html"]').forEach((enlace) => {
+    let globo = enlace.querySelector('.contador-chat');
+    if (!total) { globo?.remove(); return; }
+    if (!globo) {
+      globo = document.createElement('span');
+      globo.className = 'contador-chat';
+      enlace.appendChild(globo);
+    }
+    globo.textContent = total > 9 ? '9+' : String(total);
+    globo.setAttribute('aria-label', `${total} ${total === 1 ? 'mensaje sin leer' : 'mensajes sin leer'}`);
+  });
+  document.title = total ? `(${total}) ${tituloBase}` : tituloBase;
+}
+
+async function revisarMensajes() {
+  if (document.hidden && ultimoSinLeer !== null) return;
+  try {
+    const conversaciones = await api('/conversaciones');
+    // En la pantalla de chat, la conversación abierta ya se está leyendo: no cuenta
+    const abierta = Number(new URLSearchParams(location.search).get('c'));
+    const total = conversaciones.reduce((suma, c) => suma + (c.id === abierta ? 0 : c.no_leidos || 0), 0);
+    if (ultimoSinLeer !== null && total > ultimoSinLeer) sonarMensaje();
+    ultimoSinLeer = total;
+    pintarSinLeer(total);
+  } catch { /* sin conexión: se intenta en la siguiente vuelta */ }
+}
+
+function vigilarMensajes() {
+  revisarMensajes();
+  setInterval(revisarMensajes, 8000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) revisarMensajes(); });
 }

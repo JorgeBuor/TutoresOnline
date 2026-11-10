@@ -19,11 +19,21 @@ const nombreNivel = new Map(catalogos.niveles.map((n) => [n.id, n.nombre]));
  * Horas virtuales sirven para clases virtuales y presenciales; las presenciales, solo para presenciales.
  */
 const claveBloque = (dia, hora) => `${dia}|${hora}`;
+const dosDigitos = (n) => String(n).padStart(2, '0');
+const HORAS = Array.from({ length: 16 }, (_, i) => `${dosDigitos(6 + i)}:00`);   // casillas de una hora: 06:00 a 21:00
+
+/** Un bloque guardado (por ejemplo 08:00 a 10:00) se muestra como sus casillas de una hora. */
+function casillasDe(b) {
+  const [hi] = b.hora_inicio.split(':').map(Number);
+  const [hf, mf] = b.hora_fin.split(':').map(Number);
+  const fin = hf + (mf > 0 ? 1 : 0);
+  return Array.from({ length: Math.max(0, fin - hi) }, (_, i) => [claveBloque(b.dia_semana, `${dosDigitos(hi + i)}:00`), b.modalidad || 'virtual']);
+}
 const materias = config.materias.map((m) => ({
   materia_id: m.materia_id,
   nivel_id: m.nivel_id,
   tarifa: Math.round(m.tarifa_hora).toLocaleString('es-CO'),
-  bloques: new Map(m.disponibilidad.map((b) => [claveBloque(b.dia_semana, b.hora_inicio), b.modalidad || 'virtual'])),
+  bloques: new Map(m.disponibilidad.flatMap(casillasDe)),
 }));
 // Se abre primero una materia que ya tenga horario
 let activa = Math.max(0, materias.findIndex((m) => m.bloques.size));
@@ -58,12 +68,17 @@ if (!materias.length) {
 }
 
 const nombreDe = (m) => `${nombreMateria.get(m.materia_id)} · ${nombreNivel.get(m.nivel_id)}`;
-const horasDe = (m) => m.bloques.size * 2;
-const horasPresencialesDe = (m) => [...m.bloques.values()].filter((v) => v === 'presencial').length * 2;
+const horasDe = (m) => m.bloques.size;
+const horasPresencialesDe = (m) => [...m.bloques.values()].filter((v) => v === 'presencial').length;
 const selActiva = document.getElementById('materia-activa');
 const selCopiar = document.getElementById('copiar-de');
 const campoTarifa = document.getElementById('tarifa-d');
-const celdas = [...document.querySelectorAll('.cuadricula input')];
+// La cuadrícula se arma aquí: 7 días por 16 horas, cada casilla es una hora
+const DIAS = [['Lun', 1], ['Mar', 2], ['Mié', 3], ['Jue', 4], ['Vie', 5], ['Sáb', 6], ['Dom', 0]];
+const cuadricula = document.querySelector('.cuadricula');
+cuadricula.innerHTML = '<div></div>' + DIAS.map(([d]) => `<div class="dia">${d}</div>`).join('')
+  + HORAS.map((h) => `<div class="hora">${h}</div>` + DIAS.map(([d, n]) => `<button type="button" class="celda" data-dia="${n}" data-hora="${h}" aria-label="${d} ${h} a ${dosDigitos(Number(h.slice(0, 2)) + 1)}:00" aria-pressed="false">${ICONOS.check}</button>`).join('')).join('');
+const celdas = [...cuadricula.querySelectorAll('.celda')];
 
 /** Lista de la derecha: cada materia con sus horas marcadas y su tarifa; la abierta se resalta. */
 function pintarMaterias() {
@@ -100,9 +115,10 @@ function pintarActiva() {
 
 /** Una casilla: vacía, horas virtuales (ámbar) u horas solo presenciales (violeta). */
 function pintarCelda(c, modo) {
-  c.checked = Boolean(modo);
-  c.parentElement.classList.toggle('presencial', modo === 'presencial');
-  c.parentElement.title = modo === 'presencial' ? 'Solo presencial' : modo ? 'Horas virtuales (también presencial)' : 'Libre';
+  c.classList.toggle('marcada', Boolean(modo));
+  c.classList.toggle('presencial', modo === 'presencial');
+  c.setAttribute('aria-pressed', String(Boolean(modo)));
+  c.title = modo === 'presencial' ? 'Solo presencial' : modo ? 'Horas virtuales (también presencial)' : 'Libre';
 }
 
 const ofreceVirtual = () => document.getElementById('mod-virtual').checked;
@@ -162,13 +178,35 @@ pintarActiva();
 document.getElementById('leyenda-presencial').hidden = !ofrecePresencial() || !ofreceVirtual();
 
 // La cuadrícula, la tarifa y las herramientas editan solo la materia abierta
-document.querySelector('.cuadricula').addEventListener('change', (ev) => {
-  const c = ev.target;
-  if (!c.dataset.dia || !materias[activa]) return;
+function aplicar(c, modo) {
   const k = claveBloque(c.dataset.dia, c.dataset.hora);
-  const modo = siguienteModo(materias[activa].bloques.get(k));
   if (modo) materias[activa].bloques.set(k, modo); else materias[activa].bloques.delete(k);
   pintarCelda(c, modo);
+}
+// Tocar una casilla la cambia (libre → virtual → solo presencial → libre).
+// Con el mouse, además, se puede arrastrar para pintar varias casillas con el mismo estado.
+let pintando;          // estado que se está pintando mientras se arrastra (undefined = no arrastra)
+let ignorarClic = false;
+cuadricula.addEventListener('pointerdown', (ev) => {
+  const c = ev.target.closest('.celda');
+  if (!c || !materias[activa] || ev.pointerType !== 'mouse' || ev.button !== 0) return;
+  ev.preventDefault();
+  pintando = siguienteModo(materias[activa].bloques.get(claveBloque(c.dataset.dia, c.dataset.hora))) || null;
+  aplicar(c, pintando);
+  ignorarClic = true;
+});
+cuadricula.addEventListener('pointerover', (ev) => {
+  const c = ev.target.closest('.celda');
+  if (c && pintando !== undefined) aplicar(c, pintando);
+});
+document.addEventListener('pointerup', () => {
+  if (pintando !== undefined) { pintando = undefined; pintarMaterias(); }
+});
+cuadricula.addEventListener('click', (ev) => {
+  const c = ev.target.closest('.celda');
+  if (!c || !materias[activa]) return;
+  if (ignorarClic) { ignorarClic = false; return; }   // ya lo hizo el mouse
+  aplicar(c, siguienteModo(materias[activa].bloques.get(claveBloque(c.dataset.dia, c.dataset.hora))));
   pintarMaterias();
 });
 campoTarifa.addEventListener('input', () => {
@@ -322,11 +360,20 @@ estadoGoogle.addEventListener('click', (ev) => {
 });
 
 // Guardar todo: cada materia con su tarifa y su cuadrícula
-const aBloque = (k) => {
-  const [dia, hora] = k.split('|');
-  const [h, m] = hora.split(':').map(Number);
-  return { dia_semana: Number(dia), hora_inicio: hora, hora_fin: `${String(h + 2).padStart(2, '0')}:${String(m).padStart(2, '0')}` };
-};
+/** Junta las casillas seguidas del mismo día y estado en un solo bloque (8, 9 y 10 → 08:00 a 11:00). */
+function aBloques(bloques) {
+  const lista = [...bloques].map(([k, modalidad]) => {
+    const [dia, hora] = k.split('|');
+    return { dia: Number(dia), h: Number(hora.slice(0, 2)), modalidad };
+  }).sort((a, b) => a.dia - b.dia || a.h - b.h);
+  const salida = [];
+  for (const c of lista) {
+    const ultimo = salida[salida.length - 1];
+    if (ultimo && ultimo.dia === c.dia && ultimo.hasta === c.h && ultimo.modalidad === c.modalidad) ultimo.hasta += 1;
+    else salida.push({ dia: c.dia, desde: c.h, hasta: c.h + 1, modalidad: c.modalidad });
+  }
+  return salida.map((b) => ({ dia_semana: b.dia, hora_inicio: `${dosDigitos(b.desde)}:00`, hora_fin: `${dosDigitos(b.hasta)}:00`, modalidad: b.modalidad }));
+}
 document.getElementById('guardar').addEventListener('click', (ev) => {
   mostrarError(lado, '');
   const sinTarifa = materias.findIndex((m) => !m.tarifa);
@@ -348,7 +395,7 @@ document.getElementById('guardar').addEventListener('click', (ev) => {
             materia_id: m.materia_id,
             nivel_id: m.nivel_id,
             tarifa_hora: m.tarifa,
-            disponibilidad: [...m.bloques].map(([k, modalidad]) => ({ ...aBloque(k), modalidad })),
+            disponibilidad: aBloques(m.bloques),
           })),
         },
       });

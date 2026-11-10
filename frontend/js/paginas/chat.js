@@ -1,4 +1,4 @@
-import { iniciarPagina, api, avatar, escapar, hora, fechaHora, vacio, aviso, ICONOS } from '../app.js';
+import { iniciarPagina, api, avatar, escapar, hora, fechaHora, vacio, aviso, ICONOS, pintarSinLeer } from '../app.js';
 
 const yo = await iniciarPagina();
 const listaConv = document.getElementById('lista-conv');
@@ -46,6 +46,7 @@ async function abrir(id) {
   await traerMensajes();
   activa.no_leidos = 0;
   pintarLista();
+  pintarSinLeer(conversaciones.reduce((suma, c) => suma + (c.id === activa.id ? 0 : c.no_leidos || 0), 0));
   history.replaceState(null, '', `?rol=${yo.rol}&c=${id}`);
 }
 
@@ -65,6 +66,7 @@ async function traerMensajes() {
 async function cargarConversaciones() {
   conversaciones = await api('/conversaciones');
   pintarLista();
+  pintarSinLeer(conversaciones.reduce((suma, c) => suma + (c.id === activa?.id ? 0 : c.no_leidos || 0), 0));
 }
 
 document.addEventListener('click', (ev) => {
