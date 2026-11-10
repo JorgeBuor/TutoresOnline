@@ -555,3 +555,73 @@ test('cada materia tiene su propia cuadrícula y tarifa, como pipelines separado
   const despues = await api('GET', `/tutores?materia_id=${id('Estadística')}&nivel_id=${bachillerato}&fecha=${manana}`, { token: u.estudiante.token });
   assert.deepEqual(despues.datos.tutores.find((t) => t.docente_id === ana.id).horarios.map((h) => h.hora), ['15:00']);
 });
+
+test('las horas solo presenciales no se ofrecen ni se reservan como clase virtual', async () => {
+  const leo = await crearUsuario('Leo Prada', 'docente');
+  const catalogos = (await api('GET', '/catalogos')).datos;
+  const quimica = catalogos.materias.find((m) => m.nombre === 'Química Orgánica').id;
+  const universitario = catalogos.niveles.find((n) => n.nombre === 'Universitario').id;
+  const dia = new Date(`${manana}T12:00:00Z`).getUTCDay();
+  const guardar = (cuerpo) => api('PUT', '/docente/configuracion', { token: leo.token, cuerpo });
+  const materias = [{
+    materia_id: quimica, nivel_id: universitario, tarifa_hora: 30000,
+    disponibilidad: [
+      { dia_semana: dia, hora_inicio: '08:00', hora_fin: '10:00', modalidad: 'virtual' },
+      { dia_semana: dia, hora_inicio: '10:00', hora_fin: '12:00', modalidad: 'presencial' },
+    ],
+  }];
+  assert.equal((await guardar({ ofrece_virtual: true, ofrece_presencial: false, materias })).status, 400,
+    'no puede marcar horas presenciales sin ofrecer presencial');
+  const ok = await guardar({ ofrece_virtual: true, ofrece_presencial: true, zona_presencial: 'Biblioteca', materias });
+  assert.equal(ok.status, 200, JSON.stringify(ok.datos));
+  assert.deepEqual(ok.datos.materias[0].disponibilidad.map((b) => b.modalidad), ['virtual', 'presencial']);
+
+  const horas = async (modalidad, duracion = 60) => {
+    const q = new URLSearchParams({ materia_id: quimica, fecha: manana, duracion_min: duracion });
+    if (modalidad) q.set('modalidad', modalidad);
+    const r = await api('GET', `/tutores?${q}`, { token: u.estudiante.token });
+    return r.datos.tutores.find((t) => t.docente_id === leo.id)?.horarios.map((h) => `${h.hora}${h.permite_virtual ? '' : '*'}`) || [];
+  };
+  // Virtual: solo las horas virtuales. Presencial: todas (puede ir en sus horas virtuales). Me da igual: todas, marcando las solo presenciales
+  assert.deepEqual(await horas('virtual'), ['08:00', '09:00']);
+  assert.deepEqual(await horas('presencial'), ['08:00', '09:00', '10:00*', '11:00*']);
+  assert.deepEqual(await horas(null), ['08:00', '09:00', '10:00*', '11:00*']);
+  assert.deepEqual(await horas('virtual', 120), ['08:00'], 'una clase virtual de 2 horas no puede entrar en horas presenciales');
+  assert.deepEqual(await horas(null, 120), ['08:00', '09:00*', '10:00*']);
+
+  const reservar = (hora, modalidad) => api('POST', '/tutorias', {
+    token: u.estudiante.token,
+    cuerpo: { docente_id: leo.id, materia_id: quimica, nivel_id: universitario, inicio: aLas(hora), modalidad },
+  });
+  const virtualEnPresencial = await reservar('10:00', 'virtual');
+  assert.equal(virtualEnPresencial.status, 409);
+  assert.match(virtualEnPresencial.datos.error.mensaje, /horas virtuales/);
+  assert.equal((await reservar('08:00', 'presencial')).status, 201, 'presencial sí puede usar horas virtuales');
+  assert.equal((await reservar('11:00', 'presencial')).status, 201);
+});
+
+test('tiempo real: el estudiante solo puede tener una solicitud abierta', async () => {
+  const catalogos = (await api('GET', '/catalogos')).datos;
+  const publicar = () => api('POST', '/solicitudes', {
+    token: u.estudiante2.token,
+    cuerpo: { tema: 'Repaso de derivadas', materia_id: catalogos.materias[0].id, tarifa_sugerida: '20000', modalidad: 'virtual' },
+  });
+  const primera = await publicar();
+  assert.equal(primera.status, 201, JSON.stringify(primera.datos));
+  const segunda = await publicar();
+  assert.equal(segunda.status, 409);
+  assert.match(segunda.datos.error.mensaje, /Ya tienes una solicitud abierta/);
+  await api('PATCH', `/solicitudes/${primera.datos.id}`, { token: u.estudiante2.token, cuerpo: { estado: 'cancelada' } });
+  assert.equal((await publicar()).status, 201, 'después de cancelar puede publicar otra');
+});
+
+test('historial: muestra clases pasadas, canceladas y rechazadas, de la más reciente a la más antigua', async () => {
+  const r = await api('GET', '/tutorias?vista=pasadas', { token: u.estudiante.token });
+  assert.equal(r.status, 200);
+  assert.ok(r.datos.length > 0);
+  for (const t of r.datos) {
+    assert.ok(new Date(t.fin) < new Date() || ['cancelada', 'rechazada', 'completada'].includes(t.estado), `clase ${t.id} no debería estar en el historial`);
+  }
+  const fechas = r.datos.map((t) => new Date(t.inicio).getTime());
+  assert.deepEqual(fechas, [...fechas].sort((a, b) => b - a));
+});

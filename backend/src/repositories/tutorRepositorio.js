@@ -74,14 +74,26 @@ class TutorRepositorio extends RepositorioBase {
    * materia y nivel del docente: todo el rato debe estar dentro de los bloques marcados en la cuadrícula
    * de ESA materia (pueden ser bloques seguidos, por ejemplo 10:00 a 12:00 y 12:00 a 14:00) y sin
    * cruzarse con otra clase pendiente o confirmada del docente, de cualquier materia.
+   * Si el estudiante pide clase virtual, solo cuentan los bloques de horas virtuales.
+   * "permite_virtual" dice si todo el rato cae en horas virtuales (si no, solo sirve presencial).
    */
-  horariosLibres(docenteIds, fecha, zonaHoraria, duracionMin = 60, { materiaId = null, nivelId = null } = {}) {
+  horariosLibres(docenteIds, fecha, zonaHoraria, duracionMin = 60, { materiaId = null, nivelId = null, modalidad = null } = {}) {
     if (!docenteIds.length) return [];
     return this.db.consultar(
       `select d.docente_id, d.materia_id, d.nivel_id,
               to_char(s.inicio at time zone $3, 'HH24:MI') as hora,
               s.inicio,
-              s.inicio + make_interval(mins => $4) as fin
+              s.inicio + make_interval(mins => $4) as fin,
+              not exists (
+                select 1
+                  from generate_series(g.local, g.local + make_interval(mins => $4 - 30), interval '30 minutes') as t(local)
+                 where not exists (
+                         select 1 from disponibilidad d3
+                          where d3.docente_id = d.docente_id and d3.materia_id = d.materia_id and d3.nivel_id = d.nivel_id
+                            and d3.dia_semana = d.dia_semana and d3.modalidad = 'virtual'
+                            and (t.local + interval '30 minutes')::date = $2::date
+                            and d3.hora_inicio <= t.local::time
+                            and d3.hora_fin >= (t.local + interval '30 minutes')::time)) as permite_virtual
          from disponibilidad d
          cross join lateral generate_series(
                 ($2::date + d.hora_inicio),
@@ -91,6 +103,7 @@ class TutorRepositorio extends RepositorioBase {
         where d.docente_id = any($1::uuid[])
           and ($5::int is null or d.materia_id = $5)
           and ($6::int is null or d.nivel_id = $6)
+          and ($7::text is distinct from 'virtual' or d.modalidad = 'virtual')
           and d.dia_semana = extract(dow from $2::date)
           and s.inicio > now()
           -- cada media hora de la clase cae dentro de algún bloque marcado ese día
@@ -102,6 +115,7 @@ class TutorRepositorio extends RepositorioBase {
                           where d2.docente_id = d.docente_id
                             and d2.materia_id = d.materia_id
                             and d2.nivel_id = d.nivel_id
+                            and ($7::text is distinct from 'virtual' or d2.modalidad = 'virtual')
                             and d2.dia_semana = d.dia_semana
                             and (t.local + interval '30 minutes')::date = $2::date
                             and d2.hora_inicio <= t.local::time
@@ -112,7 +126,7 @@ class TutorRepositorio extends RepositorioBase {
                    and tu.estado in ('pendiente', 'confirmada')
                    and tstzrange(tu.inicio, tu.fin) && tstzrange(s.inicio, s.inicio + make_interval(mins => $4)))
         order by d.docente_id, d.materia_id, d.nivel_id, s.inicio`,
-      [docenteIds, fecha, zonaHoraria, duracionMin, materiaId, nivelId],
+      [docenteIds, fecha, zonaHoraria, duracionMin, materiaId, nivelId, modalidad],
     );
   }
 
@@ -128,7 +142,7 @@ class TutorRepositorio extends RepositorioBase {
   }
 
   /** ¿Toda la clase (de inicio a fin) cae dentro de la cuadrícula de esa materia (y nivel, si se indica) ese día? */
-  async dentroDeDisponibilidad(docenteId, inicio, fin, zonaHoraria, materiaId, nivelId = null) {
+  async dentroDeDisponibilidad(docenteId, inicio, fin, zonaHoraria, materiaId, nivelId = null, modalidad = null) {
     const fila = await this.db.uno(
       `with clase as (
          select ($2::timestamptz at time zone $4) as desde, ($3::timestamptz at time zone $4) as hasta
@@ -141,11 +155,12 @@ class TutorRepositorio extends RepositorioBase {
                           where d.docente_id = $1
                             and d.materia_id = $5
                             and ($6::int is null or d.nivel_id = $6)
+                            and ($7::text is distinct from 'virtual' or d.modalidad = 'virtual')
                             and d.dia_semana = extract(dow from t.local)
                             and d.hora_inicio <= t.local::time
                             and d.hora_fin >= (t.local + interval '30 minutes')::time)) as ok
          from clase c`,
-      [docenteId, inicio, fin, zonaHoraria, materiaId, nivelId],
+      [docenteId, inicio, fin, zonaHoraria, materiaId, nivelId, modalidad],
     );
     return fila.ok;
   }

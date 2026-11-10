@@ -27,7 +27,7 @@ class TutorServicio {
     for (const h of libres) {
       const clave = `${h.docente_id}|${h.materia_id}|${h.nivel_id}`;
       if (!porOferta.has(clave)) porOferta.set(clave, []);
-      porOferta.get(clave).push({ hora: h.hora, inicio: h.inicio, fin: h.fin });
+      porOferta.get(clave).push({ hora: h.hora, inicio: h.inicio, fin: h.fin, permite_virtual: h.permite_virtual });
     }
     if (this.ocupado) {
       await this.ocupado.filtrar(porOferta, new Set(tutores.filter((t) => t.google_conectado).map((t) => t.docente_id)));
@@ -50,13 +50,16 @@ class TutorServicio {
     if (duracion % 30 !== 0) throw solicitudInvalida('La duración debe ser en bloques de 30 minutos');
 
     const tutores = await this.tutores.buscar(filtros);
-    const filtroHorario = { materiaId: filtros.materiaId, nivelId: filtros.nivelId };
+    const filtroHorario = { materiaId: filtros.materiaId, nivelId: filtros.nivelId, modalidad: filtros.modalidad };
 
     // Cada materia y nivel del docente es una oferta con su propia tarifa y sus propios horarios
+    // Horas solo presenciales: no sirven si el docente dejó de ofrecer presencial
     const armar = (porOferta) => tutores.flatMap(({ google_conectado: _g, ...t }) => t.materias.map((m) => ({
       ...t,
       materias: [m],
-      horarios: porOferta.get(`${t.docente_id}|${m.materia_id}|${m.nivel_id}`) || [],
+      horarios: (porOferta.get(`${t.docente_id}|${m.materia_id}|${m.nivel_id}`) || [])
+        .map((h) => ({ ...h, permite_virtual: h.permite_virtual && t.ofrece_virtual }))
+        .filter((h) => h.permite_virtual || t.ofrece_presencial),
     })));
 
     const resultado = armar(await this.horariosDelDia(tutores, fecha, duracion, filtroHorario))
@@ -67,8 +70,7 @@ class TutorServicio {
     if (consulta.proximo === 'true' && tutores.length && !resultado.some((o) => o.horarios.length)) {
       for (let n = 1; n <= DIAS_A_REVISAR && !proximaFecha; n += 1) {
         const dia = sumarDias(fecha, n);
-        const horarios = await this.horariosDelDia(tutores, dia, duracion, filtroHorario);
-        if ([...horarios.values()].some((h) => h.length)) proximaFecha = dia;
+        if (armar(await this.horariosDelDia(tutores, dia, duracion, filtroHorario)).some((o) => o.horarios.length)) proximaFecha = dia;
       }
     }
     return { fecha, duracion_min: duracion, tutores: resultado, total_materia: tutores.length, proxima_fecha: proximaFecha };

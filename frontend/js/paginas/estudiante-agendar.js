@@ -106,7 +106,9 @@ function tarjeta(t, i) {
   const niveles = t.materias.map((m) => m.nivel).filter((v, k, a) => a.indexOf(v) === k).join(', ');
   const modos = [t.ofrece_virtual && 'virtual', t.ofrece_presencial && 'presencial'].filter(Boolean).join(' y ');
   // Con clases de más de una hora se muestra el rango completo (08:00 a 10:00)
-  const horarios = t.horarios.map((h, j) => `<label class="chip horario"><input type="radio" name="h${i}" value="${h.inicio}"${j === 0 ? ' checked' : ''}><span>${h.hora}${duracion() > 60 ? ` a ${horaFin(h.inicio)}` : ''}</span></label>`).join('');
+  // Los horarios que caen en horas solo presenciales del docente se ven en violeta
+  const horarios = t.horarios.map((h, j) => `<label class="chip horario${h.permite_virtual ? '' : ' solo-presencial'}" ${h.permite_virtual ? '' : 'title="Solo presencial"'}><input type="radio" name="h${i}" value="${h.inicio}" data-pv="${h.permite_virtual ? 1 : 0}"${j === 0 ? ' checked' : ''}><span>${h.hora}${duracion() > 60 ? ` a ${horaFin(h.inicio)}` : ''}</span></label>`).join('');
+  const hayPresenciales = t.horarios.some((h) => !h.permite_virtual);
   // Si el estudiante dijo "Me da igual" y el tutor ofrece las dos, elige aquí
   const eligeModo = !modalidadElegida() && t.ofrece_virtual && t.ofrece_presencial
     ? `<span class="etiqueta-seccion modo-reserva">Modalidad</span><div class="chips">
@@ -121,11 +123,27 @@ function tarjeta(t, i) {
           <div class="ubicacion">${ICONOS.ubicacion}${escapar(t.ciudad || 'Sin ciudad')} · ${modos}</div></div>
         ${estrellas(t.calificacion_promedio, t.total_resenas)}
       </div>
-      <div class="horarios"><span class="etiqueta-seccion">Horarios libres</span><div class="chips">${horarios}</div>${eligeModo}</div>
+      <div class="horarios"><span class="etiqueta-seccion">Horarios libres</span><div class="chips">${horarios}</div>
+        ${hayPresenciales ? '<span class="nota-presencial">Los horarios en violeta son solo para clase presencial</span>' : ''}${eligeModo}</div>
       <div class="pie"><div class="precio">${dinero(duracion() === 60 ? materia.tarifa_hora : total)} <small>${duracion() === 60 ? '/ hora' : `total ${duracion() / 60} h`}</small></div>
         <button class="btn" type="button" data-reservar="${i}">Reservar</button></div>
     </article>`;
 }
+
+/** Si el horario elegido es solo presencial, en esa tarjeta se marca Presencial y se bloquea Virtual. */
+function ajustarModoTarjeta(i) {
+  const elegido = lista.querySelector(`input[name="h${i}"]:checked`);
+  const virtual = lista.querySelector(`input[name="m${i}"][value=virtual]`);
+  if (!elegido || !virtual) return;
+  const soloPresencial = elegido.dataset.pv === '0';
+  virtual.disabled = soloPresencial;
+  virtual.parentElement.classList.toggle('deshabilitado', soloPresencial);
+  if (soloPresencial) lista.querySelector(`input[name="m${i}"][value=presencial]`).checked = true;
+}
+lista.addEventListener('change', (ev) => {
+  const nombre = ev.target.name || '';
+  if (nombre.startsWith('h')) ajustarModoTarjeta(Number(nombre.slice(1)));
+});
 
 const botonAvisame = (id) => (conAviso.has(id)
   ? `<span class="ok-aviso">${ICONOS.check} Te avisaremos por correo</span>`
@@ -170,6 +188,7 @@ async function buscar() {
     if (r.tutores.length) {
       mostrar(`${r.tutores.length} ${r.tutores.length === 1 ? 'tutor disponible' : 'tutores disponibles'}<small>${escapar(materia.nombre)} · ${cuando} · clase de ${textoDuracion(duracion())}</small>`,
         r.tutores.map(tarjeta).join(''));
+      r.tutores.forEach((_, i) => ajustarModoTarjeta(i));
     } else if (!r.total_materia) {
       mostrar('', vacio(`<span class="titulo-vacio">Ningún tutor de ${escapar(materia.nombre)} coincide con ese nivel o modalidad</span>
         Prueba con <b>Cualquier nivel</b> o con <b>Me da igual</b> en la modalidad.`));
@@ -260,7 +279,9 @@ lista.addEventListener('click', (ev) => {
   const tutor = ultimaBusqueda[i];
   const inicio = lista.querySelector(`input[name="h${i}"]:checked`)?.value;
   const materia = tutor.materias[0];
+  const soloPresencial = lista.querySelector(`input[name="h${i}"]:checked`)?.dataset.pv === '0';
   const modalidad = modalidadElegida()
+    || (soloPresencial ? 'presencial' : null)
     || lista.querySelector(`input[name="m${i}"]:checked`)?.value
     || (tutor.ofrece_virtual ? 'virtual' : 'presencial');
 

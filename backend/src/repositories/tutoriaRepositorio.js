@@ -29,7 +29,7 @@ class TutoriaRepositorio extends RepositorioBase {
     return this.db.uno(`${SELECT_TUTORIA} where t.id = $1`, [id]);
   }
 
-  listar(usuarioId, { estados = null, desde = null, hasta = null, modalidad = null } = {}) {
+  listar(usuarioId, { estados = null, desde = null, hasta = null, modalidad = null, pasadas = false } = {}) {
     return this.db.consultar(
       `${SELECT_TUTORIA}
         where $1 in (t.estudiante_id, t.docente_id)
@@ -37,9 +37,11 @@ class TutoriaRepositorio extends RepositorioBase {
           and ($3::timestamptz is null or t.fin >= $3)
           and ($4::timestamptz is null or t.inicio <= $4)
           and ($5::modalidad_clase is null or t.modalidad = $5)
-        order by t.inicio
+          -- Historial: clases que ya pasaron, o que se cancelaron o rechazaron aunque fueran a futuro
+          and (not $6 or t.fin < now() or t.estado in ('cancelada', 'rechazada', 'completada'))
+        order by case when $6 then t.inicio end desc, t.inicio
         limit 100`,
-      [usuarioId, estados, desde, hasta, modalidad],
+      [usuarioId, estados, desde, hasta, modalidad, pasadas],
     );
   }
 

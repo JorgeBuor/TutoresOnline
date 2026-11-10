@@ -42,6 +42,10 @@
   </section>
   <section class="seccion">
     <div class="seccion-titulo"><h2>Mi agenda</h2><a href="../docente/disponibilidad.html">Editar disponibilidad</a></div>
+    <div class="chips pestanas" role="radiogroup" aria-label="Qué clases ver">
+      <label class="chip"><input type="radio" name="vista" value="proximas" checked><span>Próximas</span></label>
+      <label class="chip"><input type="radio" name="vista" value="pasadas"><span>Historial</span></label>
+    </div>
     <div class="rejilla rejilla-3" id="lista-agenda"><div class="cargando" aria-label="Cargando"><span></span><span></span><span></span></div></div>
   </section>
   <section class="seccion" id="sec-cerrar" hidden>

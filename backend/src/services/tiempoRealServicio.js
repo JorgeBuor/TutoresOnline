@@ -15,7 +15,11 @@ class TiempoRealServicio {
     this.notificaciones = notificaciones;
   }
 
-  crearSolicitud(usuario, cuerpo) {
+  async crearSolicitud(usuario, cuerpo) {
+    // Una sola solicitud abierta a la vez: para cambiarla, primero se cancela la anterior
+    await this.repo.expirarVencidas();
+    const abierta = (await this.repo.misSolicitudes(usuario.id)).find((s) => s.estado === 'abierta');
+    if (abierta) throw conflicto('Ya tienes una solicitud abierta. Cancélala o cámbiala antes de publicar otra.');
     const modalidad = validar.opcion(cuerpo.modalidad ?? 'virtual', 'modalidad', ['virtual', 'presencial']);
     const ciudad = validar.texto(cuerpo.ciudad, 'ciudad', { requerido: false, max: 80 }) || usuario.ciudad || null;
     if (modalidad === 'presencial' && !ciudad) throw solicitudInvalida('Para una clase presencial indica la ciudad');

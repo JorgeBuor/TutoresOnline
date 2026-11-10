@@ -47,8 +47,12 @@ class TutoriaServicio {
     if (!tarifa) throw solicitudInvalida('El docente no enseña esa materia');
 
     const fin = sumarMinutos(inicio, duracion);
-    const disponible = await this.tutores.dentroDeDisponibilidad(docenteId, inicio, fin, this.zona, materiaId, tarifa.nivel_id);
-    if (!disponible) throw conflicto('Ese horario no está dentro de la disponibilidad del docente');
+    const disponible = await this.tutores.dentroDeDisponibilidad(docenteId, inicio, fin, this.zona, materiaId, tarifa.nivel_id, modalidad);
+    if (!disponible) {
+      throw conflicto(modalidad === 'virtual'
+        ? 'Ese horario no está dentro de las horas virtuales del docente'
+        : 'Ese horario no está dentro de la disponibilidad del docente');
+    }
     if (this.ocupado && docente.google_conectado && !(await this.ocupado.estaLibre(docenteId, inicio, fin))) {
       throw conflicto('El docente tiene otro compromiso en ese horario. Elige otra hora.');
     }
@@ -79,6 +83,8 @@ class TutoriaServicio {
         return this.tutorias.listar(usuario.id, { estados: ['confirmada'], desde: ahora, modalidad: 'virtual' });
       case 'historial':
         return this.tutorias.listar(usuario.id, { estados: ['completada', 'confirmada'], hasta: ahora });
+      case 'pasadas':
+        return this.tutorias.listar(usuario.id, { pasadas: true });
       default:
         return this.tutorias.listar(usuario.id);
     }

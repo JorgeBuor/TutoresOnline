@@ -14,6 +14,8 @@ function validarBloques(lista, campo) {
         dia_semana: validar.entero(b.dia_semana, `${campo}[${i}].dia_semana`, { min: 0, max: 6 }),
         hora_inicio: validar.hora(b.hora_inicio, `${campo}[${i}].hora_inicio`),
         hora_fin: validar.hora(b.hora_fin, `${campo}[${i}].hora_fin`),
+        // virtual = horas virtuales (también sirven para presencial); presencial = solo presencial
+        modalidad: validar.opcion(b.modalidad ?? 'virtual', `${campo}[${i}].modalidad`, ['virtual', 'presencial']),
       };
       if (aMinutos(bloque.hora_fin) <= aMinutos(bloque.hora_inicio)) {
         throw solicitudInvalida('En la disponibilidad, la hora final debe ser mayor que la inicial');
@@ -55,7 +57,7 @@ class DocenteServicio {
       ...m,
       disponibilidad: disponibilidad
         .filter((d) => d.materia_id === m.materia_id && d.nivel_id === m.nivel_id)
-        .map(({ dia_semana, hora_inicio, hora_fin }) => ({ dia_semana, hora_inicio, hora_fin })),
+        .map(({ dia_semana, hora_inicio, hora_fin, modalidad }) => ({ dia_semana, hora_inicio, hora_fin, modalidad })),
     }));
     return { perfil, materias: conCuadricula, disponibilidad, google };
   }
@@ -88,7 +90,16 @@ class DocenteServicio {
       vistas.add(clave);
       return fila;
     });
-    const bloques = materias.flatMap((m) => m.disponibilidad.map((b) => ({ ...b, materia_id: m.materia_id, nivel_id: m.nivel_id })));
+    const bloques = materias.flatMap((m) => m.disponibilidad.map((b) => ({
+      ...b,
+      materia_id: m.materia_id,
+      nivel_id: m.nivel_id,
+      // Quien solo da clases presenciales no tiene horas virtuales
+      modalidad: ofreceVirtual ? b.modalidad : 'presencial',
+    })));
+    if (!ofrecePresencial && bloques.some((b) => b.modalidad === 'presencial')) {
+      throw solicitudInvalida('Marcaste horas presenciales, pero no tienes activada la modalidad presencial');
+    }
 
     await this.db.transaccion(async (tx) => {
       const repo = this.docentes.con(tx);

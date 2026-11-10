@@ -119,6 +119,9 @@ create table disponibilidad (
   dia_semana   smallint not null check (dia_semana between 0 and 6),   -- 0 = domingo
   hora_inicio  time     not null,
   hora_fin     time     not null,
+  -- 'virtual': horas virtuales (también sirven para clases presenciales, si el docente puede ir)
+  -- 'presencial': solo para clases presenciales; un estudiante que pide clase virtual no las ve
+  modalidad    modalidad_clase not null default 'virtual',
   check (hora_fin > hora_inicio),
   constraint disponibilidad_por_materia unique (docente_id, materia_id, nivel_id, dia_semana, hora_inicio),
   constraint disponibilidad_materia_fk foreign key (docente_id, materia_id, nivel_id)
@@ -142,6 +145,8 @@ create table solicitudes_tiempo_real (
   creada_en        timestamptz     not null default now(),
   expira_en        timestamptz     not null default now() + interval '30 minutes'
 );
+-- Cada estudiante tiene como máximo una solicitud abierta a la vez
+create unique index una_solicitud_abierta on solicitudes_tiempo_real (estudiante_id) where estado = 'abierta';
 
 create table ofertas (
   id               bigserial primary key,

@@ -1,41 +1,49 @@
 import { iniciarPagina, api, avatar, escapar, fechaHora, etiquetaEstado, ICONOS, vacio, conBoton, aviso, crearVentana } from '../app.js';
+import { ventanaDetalle, botonChat, accionesClase } from '../clase-detalle.js';
 
 await iniciarPagina();
 const listaProximas = document.getElementById('lista-proximas');
 const listaCalificar = document.getElementById('lista-calificar');
+let clases = [];
 
-function tarjetaClase(t) {
+/** Tarjeta de clase: toda la tarjeta abre el detalle; chat y la acción principal quedan a mano. */
+function tarjetaClase(t, i) {
   const lugar = t.modalidad === 'virtual' ? 'Google Meet' : escapar(t.lugar || 'Por acordar');
-  let boton;
-  if (t.estado === 'confirmada' && t.modalidad === 'virtual') {
-    boton = `<a class="btn chico" href="/compartidas/clases-virtuales.html?rol=estudiante">Unirse</a>`;
-  } else if (t.estado === 'pendiente') {
-    boton = `<button class="btn chico claro" data-cancelar="${t.id}">Cancelar</button>`;
-  } else {
-    boton = `<a class="btn chico claro" href="/compartidas/chat.html?rol=estudiante&con=${t.docente_id}">Chat</a>`;
-  }
+  const puede = accionesClase(t, 'estudiante');
+  let principal = '<button class="btn chico claro" type="button" data-ver>Detalles</button>';
+  if (puede.unirse) principal = '<a class="btn chico" href="/compartidas/clases-virtuales.html?rol=estudiante">Unirse</a>';
+  else if (t.estado === 'pendiente' && puede.cancelar) principal = '<button class="btn chico claro" type="button" data-ver>Cancelar</button>';
+  else if (t.estado === 'completada' && !t.calificacion) principal = `<button class="btn chico" type="button" data-calificar="${t.id}" data-docente="${escapar(t.docente)}">Calificar</button>`;
   return `
-    <article class="tarjeta clase">
+    <article class="tarjeta clase" data-detalle="${i}" tabindex="0" aria-label="Ver detalle de la clase con ${escapar(t.docente)}">
       <div class="cabeza">${avatar(t.docente, t.docente_id)}
-        <div class="info"><div class="titulo-persona">${escapar(t.docente)}</div><div class="subtexto">${escapar(t.materia)}</div></div>
+        <div class="info"><div class="titulo-persona">${escapar(t.docente)}</div><div class="subtexto">${escapar(t.materia)}</div>
+          <div class="ver-detalle">Ver detalle ›</div></div>
         ${etiquetaEstado(t.estado)}
       </div>
       <div class="pie">
         <div><div class="dato">${ICONOS.reloj}${fechaHora(t.inicio)}</div>
           <div class="chip-modalidad ${t.modalidad}">${t.modalidad === 'virtual' ? 'Virtual' : 'Presencial'} · ${lugar}</div></div>
-        ${boton}
+        <div class="acciones-clase">${botonChat(t, 'estudiante')}${principal}</div>
       </div>
     </article>`;
 }
 
+const vistaActual = () => document.querySelector('input[name=vista]:checked').value;
+
 async function cargar() {
-  const [proximas, historial] = await Promise.all([
-    api('/tutorias?vista=proximas'),
+  const vista = vistaActual();
+  const [lista, historial] = await Promise.all([
+    api(`/tutorias?vista=${vista}`),
     api('/tutorias?vista=historial'),
   ]);
-  listaProximas.innerHTML = proximas.length
-    ? proximas.map(tarjetaClase).join('')
-    : vacio('Todavía no tienes clases agendadas.', '<a class="btn" href="/estudiante/agendar.html">Buscar un tutor</a>');
+  if (vista !== vistaActual()) return;
+  clases = lista;
+  listaProximas.innerHTML = lista.length
+    ? lista.map(tarjetaClase).join('')
+    : vista === 'proximas'
+      ? vacio('Todavía no tienes clases agendadas.', '<a class="btn" href="/estudiante/agendar.html">Buscar un tutor</a>')
+      : vacio('Aquí verás tus clases pasadas, canceladas o rechazadas.');
 
   const porCalificar = historial.filter((t) => t.estado === 'completada' && !t.calificacion);
   document.getElementById('sec-calificar').hidden = !porCalificar.length;
@@ -48,6 +56,11 @@ async function cargar() {
         <button class="btn chico" data-calificar="${t.id}" data-docente="${escapar(t.docente)}">Calificar</button></div>
     </article>`).join('');
 }
+
+document.querySelectorAll('input[name=vista]').forEach((r) => r.addEventListener('change', () => {
+  listaProximas.innerHTML = '<div class="cargando" aria-label="Cargando"><span></span><span></span><span></span></div>';
+  cargar().catch((e) => { listaProximas.innerHTML = vacio(escapar(e.message)); });
+}));
 
 function ventanaCalificar(id, docente) {
   const estrellas = [1, 2, 3, 4, 5].map((n) => `<label data-n="${n}"><input type="radio" name="estrellas" value="${n}" required>${ICONOS.estrella}<span class="oculto">${n} estrellas</span></label>`).join('');
@@ -77,17 +90,18 @@ function ventanaCalificar(id, docente) {
 }
 
 document.addEventListener('click', (ev) => {
-  const cancelar = ev.target.closest('[data-cancelar]');
-  if (cancelar) {
-    if (!confirm('¿Cancelar esta solicitud de clase?')) return;
-    conBoton(cancelar, async () => {
-      await api(`/tutorias/${cancelar.dataset.cancelar}`, { metodo: 'PATCH', cuerpo: { estado: 'cancelada' } });
-      aviso('Clase cancelada');
-      await cargar();
-    });
-  }
   const calificar = ev.target.closest('[data-calificar]');
-  if (calificar) ventanaCalificar(calificar.dataset.calificar, calificar.dataset.docente);
+  if (calificar) return ventanaCalificar(calificar.dataset.calificar, calificar.dataset.docente);
+  if (ev.target.closest('a, button:not([data-ver])')) return;   // enlaces y otros botones hacen lo suyo
+  const tarjeta = ev.target.closest('[data-detalle]');
+  if (tarjeta) ventanaDetalle(clases[Number(tarjeta.dataset.detalle)], 'estudiante', cargar);
+});
+listaProximas.addEventListener('keydown', (ev) => {
+  const tarjeta = ev.target.closest('[data-detalle]');
+  if (tarjeta && ev.target === tarjeta && (ev.key === 'Enter' || ev.key === ' ')) {
+    ev.preventDefault();
+    ventanaDetalle(clases[Number(tarjeta.dataset.detalle)], 'estudiante', cargar);
+  }
 });
 
 cargar().catch((e) => { listaProximas.innerHTML = vacio(escapar(e.message)); });

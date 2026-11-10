@@ -83,6 +83,10 @@ select '22222222-2222-2222-2222-222222222222', m.id, n.id, x.dia, x.desde::time,
   from materias m, niveles_educativos n,
        (values (1, '10:00', '12:00'), (3, '08:00', '10:00'), (5, '08:00', '10:00')) as x(dia, desde, hasta)
  where m.nombre = 'Álgebra Lineal' and n.nombre = 'Universitario';
+-- Algunas horas del Dr. Carlos son solo presenciales (se ven en otro color en su cuadrícula)
+update disponibilidad set modalidad = 'presencial'
+ where docente_id = '22222222-2222-2222-2222-222222222222'
+   and ((dia_semana = 3 and hora_inicio = '14:00') or (dia_semana = 6 and hora_inicio = '18:00'));
 
 -- Una tutoría ya completada con su reseña, y dos próximas
 insert into tutorias (estudiante_id, docente_id, materia_id, inicio, fin, modalidad, tarifa_hora, estado, meet_url)

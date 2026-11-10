@@ -25,7 +25,7 @@ class DocenteRepositorio extends RepositorioBase {
 
   disponibilidad(id) {
     return this.db.consultar(
-      `select materia_id, nivel_id, dia_semana,
+      `select materia_id, nivel_id, dia_semana, modalidad,
               to_char(hora_inicio, 'HH24:MI') as hora_inicio, to_char(hora_fin, 'HH24:MI') as hora_fin
          from disponibilidad
         where docente_id = $1
@@ -62,10 +62,10 @@ class DocenteRepositorio extends RepositorioBase {
     await this.db.consultar('delete from disponibilidad where docente_id = $1', [id]);
     if (!bloques.length) return;
     await this.db.consultar(
-      `insert into disponibilidad (docente_id, materia_id, nivel_id, dia_semana, hora_inicio, hora_fin)
-       select $1, x.materia_id, x.nivel_id, x.dia_semana, x.hora_inicio, x.hora_fin
+      `insert into disponibilidad (docente_id, materia_id, nivel_id, dia_semana, hora_inicio, hora_fin, modalidad)
+       select $1, x.materia_id, x.nivel_id, x.dia_semana, x.hora_inicio, x.hora_fin, x.modalidad::modalidad_clase
          from jsonb_to_recordset($2::jsonb)
-           as x(materia_id int, nivel_id smallint, dia_semana smallint, hora_inicio time, hora_fin time)`,
+           as x(materia_id int, nivel_id smallint, dia_semana smallint, hora_inicio time, hora_fin time, modalidad text)`,
       [id, JSON.stringify(bloques)],
     );
   }

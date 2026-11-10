@@ -15,14 +15,15 @@ const nombreNivel = new Map(catalogos.niveles.map((n) => [n.id, n.nombre]));
 
 /*
  * Cada materia y nivel es un "pipeline" con su propia tarifa y su propia cuadrícula:
- * [{ materia_id, nivel_id, tarifa, bloques: Set("dia|hora") }]. La pantalla muestra una a la vez.
+ * [{ materia_id, nivel_id, tarifa, bloques: Map("dia|hora" → 'virtual' | 'presencial') }]. La pantalla muestra una a la vez.
+ * Horas virtuales sirven para clases virtuales y presenciales; las presenciales, solo para presenciales.
  */
 const claveBloque = (dia, hora) => `${dia}|${hora}`;
 const materias = config.materias.map((m) => ({
   materia_id: m.materia_id,
   nivel_id: m.nivel_id,
   tarifa: Math.round(m.tarifa_hora).toLocaleString('es-CO'),
-  bloques: new Set(m.disponibilidad.map((b) => claveBloque(b.dia_semana, b.hora_inicio))),
+  bloques: new Map(m.disponibilidad.map((b) => [claveBloque(b.dia_semana, b.hora_inicio), b.modalidad || 'virtual'])),
 }));
 // Se abre primero una materia que ya tenga horario
 let activa = Math.max(0, materias.findIndex((m) => m.bloques.size));
@@ -30,7 +31,7 @@ const nuevaMateria = (materiaId, nivelId) => ({
   materia_id: materiaId,
   nivel_id: nivelId,
   tarifa: materias[activa]?.tarifa || '',   // se propone la tarifa de la materia que estaba abierta
-  bloques: new Set(),
+  bloques: new Map(),
 });
 
 // Compara nombres sin importar mayúsculas, tildes ni espacios
@@ -58,6 +59,7 @@ if (!materias.length) {
 
 const nombreDe = (m) => `${nombreMateria.get(m.materia_id)} · ${nombreNivel.get(m.nivel_id)}`;
 const horasDe = (m) => m.bloques.size * 2;
+const horasPresencialesDe = (m) => [...m.bloques.values()].filter((v) => v === 'presencial').length * 2;
 const selActiva = document.getElementById('materia-activa');
 const selCopiar = document.getElementById('copiar-de');
 const campoTarifa = document.getElementById('tarifa-d');
@@ -70,7 +72,7 @@ function pintarMaterias() {
       <div class="pipeline-item${i === activa ? ' activa' : ''}" data-elegir="${i}" role="button" tabindex="0">
         <span class="texto"><span class="nombre">${escapar(nombreDe(m))}</span>
           ${m.bloques.size
-            ? `<span class="detalle">${horasDe(m)} h por semana${m.tarifa ? ` · $${escapar(m.tarifa)}/h` : ''}</span>`
+            ? `<span class="detalle">${horasDe(m)} h por semana${horasPresencialesDe(m) ? ` (${horasPresencialesDe(m)} h solo presencial)` : ''}${m.tarifa ? ` · $${escapar(m.tarifa)}/h` : ''}</span>`
             : '<span class="detalle alerta">Sin horario: no aparece en la búsqueda</span>'}</span>
         <button type="button" class="quitar" data-quitar="${i}" aria-label="Quitar ${escapar(nombreDe(m))}">${ICONOS.x}</button>
       </div>`).join('')
@@ -92,8 +94,24 @@ function pintarActiva() {
     .map((x, i) => (i === activa || !x.bloques.size ? '' : `<option value="${i}">${escapar(nombreDe(x))}</option>`)).join('');
   selCopiar.hidden = selCopiar.options.length === 1;
   campoTarifa.value = m.tarifa;
-  for (const c of celdas) c.checked = m.bloques.has(claveBloque(c.dataset.dia, c.dataset.hora));
+  for (const c of celdas) pintarCelda(c, m.bloques.get(claveBloque(c.dataset.dia, c.dataset.hora)));
   pintarMaterias();
+}
+
+/** Una casilla: vacía, horas virtuales (ámbar) u horas solo presenciales (violeta). */
+function pintarCelda(c, modo) {
+  c.checked = Boolean(modo);
+  c.parentElement.classList.toggle('presencial', modo === 'presencial');
+  c.parentElement.title = modo === 'presencial' ? 'Solo presencial' : modo ? 'Horas virtuales (también presencial)' : 'Libre';
+}
+
+const ofreceVirtual = () => document.getElementById('mod-virtual').checked;
+const ofrecePresencial = () => document.getElementById('mod-presencial').checked;
+
+/** Orden al tocar: vacía → virtual → solo presencial → vacía (según las modalidades que ofrece). */
+function siguienteModo(actual) {
+  const ciclo = [null, ofreceVirtual() && 'virtual', ofrecePresencial() && 'presencial'].filter((v, i) => i === 0 || v);
+  return ciclo[(ciclo.indexOf(actual ?? null) + 1) % ciclo.length];
 }
 
 function elegir(i) {
@@ -120,15 +138,37 @@ document.getElementById('zona-d').value = config.perfil.zona_presencial || '';
 const campoZona = document.getElementById('campo-zona');
 const actualizarZona = () => { campoZona.hidden = !document.getElementById('mod-presencial').checked; };
 document.getElementById('mod-presencial').addEventListener('change', actualizarZona);
+
+// Si cambia las modalidades, las casillas se ajustan: sin presencial no hay horas "solo presencial"
+// y sin virtual todas las horas son presenciales
+function ajustarModos() {
+  let cambio = false;
+  for (const m of materias) {
+    for (const [k, v] of m.bloques) {
+      const nuevo = !ofrecePresencial() ? 'virtual' : !ofreceVirtual() ? 'presencial' : v;
+      if (nuevo !== v) { m.bloques.set(k, nuevo); cambio = true; }
+    }
+  }
+  if (cambio) {
+    pintarActiva();
+    aviso(ofrecePresencial() ? 'Todas tus horas quedaron como presenciales.' : 'Tus horas solo presenciales pasaron a ser horas virtuales.');
+  }
+  document.getElementById('leyenda-presencial').hidden = !ofrecePresencial() || !ofreceVirtual();
+}
+document.getElementById('mod-presencial').addEventListener('change', ajustarModos);
+document.getElementById('mod-virtual').addEventListener('change', ajustarModos);
 actualizarZona();
 pintarActiva();
+document.getElementById('leyenda-presencial').hidden = !ofrecePresencial() || !ofreceVirtual();
 
 // La cuadrícula, la tarifa y las herramientas editan solo la materia abierta
 document.querySelector('.cuadricula').addEventListener('change', (ev) => {
   const c = ev.target;
   if (!c.dataset.dia || !materias[activa]) return;
   const k = claveBloque(c.dataset.dia, c.dataset.hora);
-  if (c.checked) materias[activa].bloques.add(k); else materias[activa].bloques.delete(k);
+  const modo = siguienteModo(materias[activa].bloques.get(k));
+  if (modo) materias[activa].bloques.set(k, modo); else materias[activa].bloques.delete(k);
+  pintarCelda(c, modo);
   pintarMaterias();
 });
 campoTarifa.addEventListener('input', () => {
@@ -140,7 +180,7 @@ selActiva.addEventListener('change', () => elegir(Number(selActiva.value)));
 selCopiar.addEventListener('change', () => {
   const origen = materias[Number(selCopiar.value)];
   if (!origen) return;
-  materias[activa].bloques = new Set(origen.bloques);
+  materias[activa].bloques = new Map(origen.bloques);
   pintarActiva();
   aviso(`Copiamos el horario de ${nombreDe(origen)}. Ajústalo si quieres y guarda.`);
 });
@@ -308,7 +348,7 @@ document.getElementById('guardar').addEventListener('click', (ev) => {
             materia_id: m.materia_id,
             nivel_id: m.nivel_id,
             tarifa_hora: m.tarifa,
-            disponibilidad: [...m.bloques].map(aBloque),
+            disponibilidad: [...m.bloques].map(([k, modalidad]) => ({ ...aBloque(k), modalidad })),
           })),
         },
       });
